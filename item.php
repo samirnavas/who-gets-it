@@ -7,6 +7,8 @@
 session_start();
 require_once 'config/db_connect.php';
 require_once 'includes/auth_helper.php';
+require_once 'includes/bid_helper.php';
+require_once 'includes/auction_helper.php';
 
 // Get item ID from URL parameter
 $item_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -32,8 +34,14 @@ try {
     $error_message = "Unable to load item details. Please try again later.";
 }
 
-// Check if auction is still active
-$is_active = strtotime($item['end_time']) > time();
+// Check if auction is still active (using new helper function)
+$is_active = isAuctionActive($item_id);
+
+// Get auction winner information if auction has ended
+$winner_info = null;
+if (!$is_active || $item['status'] !== 'active') {
+    $winner_info = getAuctionWinner($item_id);
+}
 
 // Initialize variables for form handling
 $bid_error = '';
@@ -43,46 +51,27 @@ $bid_success = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_bid'])) {
     if (!isLoggedIn()) {
         $bid_error = 'You must be logged in to place a bid.';
-    } elseif (!$is_active) {
-        $bid_error = 'This auction has ended.';
-    } elseif (getCurrentUserId() == $item['user_id']) {
-        $bid_error = 'You cannot bid on your own item.';
     } else {
         $bid_amount = isset($_POST['bid_amount']) ? (float)$_POST['bid_amount'] : 0;
         
         // Validate bid amount
         if ($bid_amount <= 0) {
             $bid_error = 'Please enter a valid bid amount.';
-        } elseif ($bid_amount <= $item['current_bid']) {
-            $bid_error = 'Your bid must be higher than the current bid of $' . htmlspecialchars(number_format($item['current_bid'], 2)) . '.';
         } else {
-            try {
-                // Start transaction
-                $pdo = getDbConnection();
-                $pdo->beginTransaction();
-                
-                // Insert bid into bids table
-                $insert_bid_sql = "INSERT INTO bids (item_id, user_id, bid_amount) VALUES (?, ?, ?)";
-                executeQuery($insert_bid_sql, [$item_id, getCurrentUserId(), $bid_amount]);
-                
-                // Update item with new current bid and highest bidder
-                $update_item_sql = "UPDATE items SET current_bid = ?, highest_bidder_id = ? WHERE id = ?";
-                executeQuery($update_item_sql, [$bid_amount, getCurrentUserId(), $item_id]);
-                
-                // Commit transaction
-                $pdo->commit();
-                
-                // Update local item data for display
-                $item['current_bid'] = $bid_amount;
-                $item['highest_bidder_id'] = getCurrentUserId();
+            // Use centralized bid placement function that handles all validation and updates
+            $result = placeBid($item_id, $bid_amount, getCurrentUserId());
+            
+            if (!$result['success']) {
+                $bid_error = $result['message'];
+            } else {
+                // Refresh item data for display
+                $item_sql = "SELECT i.*, u.username as seller_username 
+                            FROM items i 
+                            JOIN users u ON i.user_id = u.id 
+                            WHERE i.id = ?";
+                $item = fetchOne($item_sql, [$item_id]);
                 
                 $bid_success = 'Your bid of $' . htmlspecialchars(number_format($bid_amount, 2)) . ' has been placed successfully!';
-                
-            } catch (Exception $e) {
-                // Rollback transaction on error
-                $pdo->rollBack();
-                error_log("Bid submission error: " . $e->getMessage());
-                $bid_error = 'Failed to place bid. Please try again.';
             }
         }
     }
@@ -140,6 +129,14 @@ include 'includes/header.php';
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             Active
                         </span>
+                    <?php elseif ($item['status'] === 'ended'): ?>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            Completed
+                        </span>
+                    <?php elseif ($item['status'] === 'cancelled'): ?>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            Cancelled
+                        </span>
                     <?php else: ?>
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                             Expired
@@ -148,29 +145,110 @@ include 'includes/header.php';
                 </div>
             </div>
 
-            <!-- Current Bid -->
-            <div class="bg-gray-50 rounded-lg p-4">
-                <div class="text-sm text-gray-600 mb-1">Current Bid</div>
-                <div class="text-3xl font-bold text-green-600">
-                    $<?php echo number_format($item['current_bid'], 2); ?>
-                </div>
-                <?php if ($item['highest_bidder_id']): ?>
-                    <?php
-                    $highest_bidder = fetchOne("SELECT username FROM users WHERE id = ?", [$item['highest_bidder_id']]);
-                    ?>
-                    <div class="text-sm text-gray-500 mt-1">
-                        Highest bidder: <?php echo htmlspecialchars($highest_bidder['username']); ?>
+            <!-- Current Bid / Winner Information -->
+            <?php if ($winner_info): ?>
+                <!-- Winner Information for Completed Auctions -->
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div class="flex items-center mb-2">
+                        <svg class="h-5 w-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <div class="text-sm font-medium text-green-800">Auction Winner</div>
                     </div>
-                <?php endif; ?>
-            </div>
-
-            <!-- Countdown Timer -->
-            <div class="bg-blue-50 rounded-lg p-4">
-                <div class="text-sm text-blue-600 mb-1">Time Remaining</div>
-                <div id="countdown-timer" class="text-2xl font-bold text-blue-800">
-                    Loading...
+                    <div class="text-2xl font-bold text-green-700 mb-2">
+                        <?php echo htmlspecialchars($winner_info['username']); ?>
+                    </div>
+                    <div class="text-lg font-semibold text-green-600 mb-1">
+                        Winning Bid: $<?php echo number_format($winner_info['winning_bid'], 2); ?>
+                    </div>
+                    <div class="text-sm text-green-600">
+                        Won on <?php echo date('M j, Y g:i A', strtotime($winner_info['auction_ended_at'])); ?>
+                    </div>
+                    <?php if ($winner_info['ended_by_admin']): ?>
+                        <div class="text-xs text-green-500 mt-1">
+                            <em>Auction ended by administrator</em>
+                        </div>
+                    <?php endif; ?>
                 </div>
-            </div>
+            <?php elseif (!$is_active && $item['status'] === 'ended'): ?>
+                <!-- No Winner for Ended Auctions -->
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div class="text-sm text-gray-600 mb-1">Auction Result</div>
+                    <div class="text-lg font-medium text-gray-700">
+                        No Valid Bids
+                    </div>
+                    <div class="text-sm text-gray-500 mt-1">
+                        Ended on <?php echo date('M j, Y g:i A', strtotime($item['ended_at'] ?? $item['end_time'])); ?>
+                    </div>
+                </div>
+            <?php elseif (!$is_active && $item['status'] === 'cancelled'): ?>
+                <!-- Cancelled Auction -->
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div class="text-sm text-gray-600 mb-1">Auction Status</div>
+                    <div class="text-lg font-medium text-gray-700">
+                        Cancelled
+                    </div>
+                    <div class="text-sm text-gray-500 mt-1">
+                        Cancelled on <?php echo date('M j, Y g:i A', strtotime($item['ended_at'] ?? $item['end_time'])); ?>
+                    </div>
+                </div>
+            <?php else: ?>
+                <!-- Current Bid for Active Auctions -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="text-sm text-gray-600 mb-1">Current Bid</div>
+                    <div class="text-3xl font-bold text-green-600">
+                        $<?php echo number_format($item['current_bid'], 2); ?>
+                    </div>
+                    <?php if ($item['highest_bidder_id']): ?>
+                        <?php
+                        $highest_bidder = fetchOne("SELECT username FROM users WHERE id = ?", [$item['highest_bidder_id']]);
+                        ?>
+                        <div class="text-sm text-gray-500 mt-1">
+                            Highest bidder: <?php echo htmlspecialchars($highest_bidder['username']); ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
+            <!-- Countdown Timer / Completion Info -->
+            <?php if ($is_active): ?>
+                <div class="bg-blue-50 rounded-lg p-4">
+                    <div class="text-sm text-blue-600 mb-1">Time Remaining</div>
+                    <div id="countdown-timer" class="text-2xl font-bold text-blue-800">
+                        Loading...
+                    </div>
+                </div>
+            <?php else: ?>
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="text-sm text-gray-600 mb-1">
+                        <?php if ($item['status'] === 'ended'): ?>
+                            Auction Completed
+                        <?php elseif ($item['status'] === 'cancelled'): ?>
+                            Auction Cancelled
+                        <?php else: ?>
+                            Auction Expired
+                        <?php endif; ?>
+                    </div>
+                    <div class="text-lg font-medium text-gray-700">
+                        <?php 
+                        $end_date = $item['ended_at'] ?? $item['end_time'];
+                        echo date('M j, Y g:i A', strtotime($end_date)); 
+                        ?>
+                    </div>
+                    <?php if ($winner_info): ?>
+                        <div class="text-sm text-gray-500 mt-1">
+                            Duration: <?php 
+                            $start = strtotime($item['created_at']);
+                            $end = strtotime($winner_info['auction_ended_at']);
+                            $duration = $end - $start;
+                            $days = floor($duration / (24 * 60 * 60));
+                            $hours = floor(($duration % (24 * 60 * 60)) / (60 * 60));
+                            echo $days > 0 ? "$days days, $hours hours" : "$hours hours";
+                            ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
 
             <!-- Description -->
             <div>
@@ -236,7 +314,21 @@ include 'includes/header.php';
             <?php elseif (!$is_active): ?>
                 <div class="border-t pt-6">
                     <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        <p class="text-gray-600">This auction has ended.</p>
+                        <?php if ($item['status'] === 'ended'): ?>
+                            <?php if ($winner_info): ?>
+                                <p class="text-gray-600">
+                                    This auction has been completed. 
+                                    <strong><?php echo htmlspecialchars($winner_info['username']); ?></strong> 
+                                    won with a bid of <strong>$<?php echo number_format($winner_info['winning_bid'], 2); ?></strong>.
+                                </p>
+                            <?php else: ?>
+                                <p class="text-gray-600">This auction has ended with no valid bids.</p>
+                            <?php endif; ?>
+                        <?php elseif ($item['status'] === 'cancelled'): ?>
+                            <p class="text-gray-600">This auction has been cancelled by an administrator.</p>
+                        <?php else: ?>
+                            <p class="text-gray-600">This auction has expired.</p>
+                        <?php endif; ?>
                     </div>
                 </div>
             <?php endif; ?>
@@ -250,13 +342,38 @@ include 'includes/header.php';
                         <dd class="text-sm text-gray-900">$<?php echo number_format($item['starting_bid'], 2); ?></dd>
                     </div>
                     <div>
-                        <dt class="text-sm font-medium text-gray-500">End Time</dt>
+                        <dt class="text-sm font-medium text-gray-500">
+                            <?php echo $is_active ? 'End Time' : 'Scheduled End'; ?>
+                        </dt>
                         <dd class="text-sm text-gray-900"><?php echo date('M j, Y g:i A', strtotime($item['end_time'])); ?></dd>
                     </div>
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Listed On</dt>
                         <dd class="text-sm text-gray-900"><?php echo date('M j, Y g:i A', strtotime($item['created_at'])); ?></dd>
                     </div>
+                    <?php if (!$is_active && $item['ended_at']): ?>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">
+                                <?php echo $item['status'] === 'cancelled' ? 'Cancelled On' : 'Completed On'; ?>
+                            </dt>
+                            <dd class="text-sm text-gray-900"><?php echo date('M j, Y g:i A', strtotime($item['ended_at'])); ?></dd>
+                        </div>
+                    <?php endif; ?>
+                    <?php if ($winner_info): ?>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Total Bids</dt>
+                            <dd class="text-sm text-gray-900">
+                                <?php 
+                                $bid_count = fetchOne("SELECT COUNT(*) as count FROM bids WHERE item_id = ? AND status = 'active'", [$item_id]);
+                                echo $bid_count['count'];
+                                ?>
+                            </dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Winning Bid Time</dt>
+                            <dd class="text-sm text-gray-900"><?php echo date('M j, Y g:i A', strtotime($winner_info['bid_time'])); ?></dd>
+                        </div>
+                    <?php endif; ?>
                 </dl>
             </div>
         </div>
@@ -267,14 +384,9 @@ include 'includes/header.php';
         <h2 class="text-2xl font-bold text-gray-900 mb-6">Bid History</h2>
         
         <?php
-        // Fetch bid history for this item
+        // Fetch bid history for this item (including stopped bids and admin info)
         try {
-            $bid_history_sql = "SELECT b.*, u.username 
-                               FROM bids b 
-                               JOIN users u ON b.user_id = u.id 
-                               WHERE b.item_id = ? 
-                               ORDER BY b.bid_amount DESC, b.created_at DESC";
-            $bid_history = fetchAll($bid_history_sql, [$item_id]);
+            $bid_history = getAllBidsForItem($item_id);
         } catch (Exception $e) {
             $bid_history = [];
             error_log("Failed to fetch bid history: " . $e->getMessage());
@@ -284,43 +396,152 @@ include 'includes/header.php';
         <?php if (!empty($bid_history)): ?>
             <div class="bg-white shadow overflow-hidden sm:rounded-md">
                 <ul class="divide-y divide-gray-200">
-                    <?php foreach ($bid_history as $index => $bid): ?>
-                        <li class="<?php echo $index === 0 ? 'bg-green-50 border-l-4 border-green-400' : 'bg-white'; ?>">
+                    <?php 
+                    // Separate active and stopped bids for proper display
+                    $active_bids = array_filter($bid_history, function($bid) { return $bid['status'] === 'active'; });
+                    $stopped_bids = array_filter($bid_history, function($bid) { return $bid['status'] === 'stopped'; });
+                    
+                    // Sort active bids by amount (highest first)
+                    usort($active_bids, function($a, $b) {
+                        if ($a['bid_amount'] == $b['bid_amount']) {
+                            return strtotime($a['created_at']) - strtotime($b['created_at']); // Earlier bid wins ties
+                        }
+                        return $b['bid_amount'] - $a['bid_amount']; // Higher bids first
+                    });
+                    
+                    // Sort stopped bids by creation time (newest first)
+                    usort($stopped_bids, function($a, $b) {
+                        return strtotime($b['created_at']) - strtotime($a['created_at']);
+                    });
+                    
+                    // Combine arrays: active bids first, then stopped bids
+                    $sorted_bids = array_merge($active_bids, $stopped_bids);
+                    ?>
+                    
+                    <?php foreach ($sorted_bids as $index => $bid): ?>
+                        <?php
+                        // Determine if this is the winning bid (highest active bid)
+                        $is_winning = ($bid['status'] === 'active' && $index === 0 && !empty($active_bids));
+                        $is_stopped = ($bid['status'] === 'stopped');
+                        
+                        // Set background color based on status
+                        $bg_class = '';
+                        if ($is_winning && ($winner_info && $winner_info['user_id'] == $bid['user_id'])) {
+                            $bg_class = 'bg-green-50 border-l-4 border-green-400';
+                        } elseif ($is_winning && $is_active) {
+                            $bg_class = 'bg-blue-50 border-l-4 border-blue-400';
+                        } elseif ($is_stopped) {
+                            $bg_class = 'bg-red-50 border-l-4 border-red-400';
+                        } else {
+                            $bg_class = 'bg-white';
+                        }
+                        ?>
+                        <li class="<?php echo $bg_class; ?>">
                             <div class="px-4 py-4 sm:px-6">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center">
                                         <div class="flex-shrink-0">
-                                            <?php if ($index === 0): ?>
+                                            <?php if ($is_stopped): ?>
+                                                <div class="flex items-center">
+                                                    <svg class="h-5 w-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                    <span class="text-sm font-medium text-red-800">Stopped</span>
+                                                </div>
+                                            <?php elseif ($is_winning && $winner_info && $winner_info['user_id'] == $bid['user_id']): ?>
                                                 <div class="flex items-center">
                                                     <svg class="h-5 w-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                                                     </svg>
-                                                    <span class="text-sm font-medium text-green-800">Winning Bid</span>
+                                                    <span class="text-sm font-medium text-green-800">Winner</span>
+                                                </div>
+                                            <?php elseif ($is_winning && $is_active): ?>
+                                                <div class="flex items-center">
+                                                    <svg class="h-5 w-5 text-blue-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                    <span class="text-sm font-medium text-blue-800">Leading</span>
                                                 </div>
                                             <?php else: ?>
                                                 <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
                                             <?php endif; ?>
                                         </div>
                                         <div class="ml-4">
-                                            <div class="flex items-center">
+                                            <div class="flex items-center flex-wrap gap-2">
                                                 <p class="text-sm font-medium text-gray-900">
                                                     <?php echo htmlspecialchars($bid['username']); ?>
                                                 </p>
                                                 <?php if ($bid['user_id'] == getCurrentUserId()): ?>
-                                                    <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                                         Your bid
+                                                    </span>
+                                                <?php endif; ?>
+                                                
+                                                <!-- Status Badge -->
+                                                <?php if ($is_stopped): ?>
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                        Bid Stopped
+                                                    </span>
+                                                <?php elseif ($winner_info && $winner_info['user_id'] == $bid['user_id']): ?>
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                        Won Auction
+                                                    </span>
+                                                <?php elseif ($is_winning && $is_active): ?>
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                        Current Leader
+                                                    </span>
+                                                <?php elseif ($bid['status'] === 'active' && !$is_active): ?>
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                        Outbid
                                                     </span>
                                                 <?php endif; ?>
                                             </div>
                                             <p class="text-sm text-gray-500">
-                                                <?php echo date('M j, Y g:i A', strtotime($bid['created_at'])); ?>
+                                                Placed on <?php echo date('M j, Y g:i A', strtotime($bid['created_at'])); ?>
                                             </p>
+                                            
+                                            <!-- Admin Action Information for Stopped Bids -->
+                                            <?php if ($is_stopped): ?>
+                                                <div class="mt-2 text-xs text-red-600 bg-red-50 rounded px-2 py-1">
+                                                    <div class="flex items-center">
+                                                        <svg class="h-3 w-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                                        </svg>
+                                                        <span>
+                                                            Stopped by <?php echo htmlspecialchars($bid['stopped_by_username'] ?? 'Administrator'); ?>
+                                                            on <?php echo date('M j, Y g:i A', strtotime($bid['stopped_at'])); ?>
+                                                        </span>
+                                                    </div>
+                                                    <?php
+                                                    // Get admin action details for this bid
+                                                    $admin_actions = getBidAdminActions($bid['id']);
+                                                    if (!empty($admin_actions) && !empty($admin_actions[0]['reason'])):
+                                                    ?>
+                                                        <div class="mt-1">
+                                                            <strong>Reason:</strong> <?php echo htmlspecialchars($admin_actions[0]['reason']); ?>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </div>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                     <div class="text-right">
-                                        <p class="text-lg font-semibold <?php echo $index === 0 ? 'text-green-600' : 'text-gray-900'; ?>">
+                                        <p class="text-lg font-semibold <?php 
+                                            if ($is_stopped) {
+                                                echo 'text-red-600 line-through';
+                                            } elseif ($is_winning && $winner_info && $winner_info['user_id'] == $bid['user_id']) {
+                                                echo 'text-green-600';
+                                            } elseif ($is_winning && $is_active) {
+                                                echo 'text-blue-600';
+                                            } else {
+                                                echo 'text-gray-900';
+                                            }
+                                        ?>">
                                             $<?php echo number_format($bid['bid_amount'], 2); ?>
                                         </p>
+                                        <?php if ($is_stopped): ?>
+                                            <p class="text-xs text-red-500 mt-1">Invalid</p>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>

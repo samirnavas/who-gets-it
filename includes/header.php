@@ -12,6 +12,11 @@ if (session_status() === PHP_SESSION_NONE) {
 // Include authentication helper functions
 require_once __DIR__ . '/auth_helper.php';
 
+// Include notification helper if user is logged in
+if (isLoggedIn()) {
+    require_once __DIR__ . '/notification_helper.php';
+}
+
 // Get current page for active navigation highlighting
 $current_page = basename($_SERVER['PHP_SELF']);
 $current_dir = basename(dirname($_SERVER['PHP_SELF']));
@@ -65,6 +70,34 @@ function getMobileNavLinkClasses($page, $dir = '') {
                 mobileMenu.classList.add('hidden');
             }
         }
+        
+        <?php if (isLoggedIn()): ?>
+        // Real-time notification updates
+        function updateNotificationCount() {
+            fetch('api/notifications.php?action=get_unread_count')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const badges = document.querySelectorAll('.notification-badge');
+                        badges.forEach(badge => {
+                            if (data.unread_count > 0) {
+                                badge.textContent = data.unread_count > 9 ? '9+' : data.unread_count;
+                                badge.style.display = 'flex';
+                            } else {
+                                badge.style.display = 'none';
+                            }
+                        });
+                    }
+                })
+                .catch(error => console.error('Error updating notification count:', error));
+        }
+        
+        // Update notification count every 30 seconds
+        setInterval(updateNotificationCount, 30000);
+        
+        // Update on page load
+        document.addEventListener('DOMContentLoaded', updateNotificationCount);
+        <?php endif; ?>
     </script>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -94,6 +127,25 @@ function getMobileNavLinkClasses($page, $dir = '') {
                         <a href="my_bids.php" class="<?php echo getNavLinkClasses('my_bids.php'); ?>">
                             My Bids
                         </a>
+                        
+                        <!-- Notifications -->
+                        <a href="notifications.php" class="<?php echo getNavLinkClasses('notifications.php'); ?> relative">
+                            Notifications
+                            <?php 
+                            $unread_count = getUnreadNotificationCount(getCurrentUserId());
+                            ?>
+                            <span class="notification-badge absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center" 
+                                  style="display: <?php echo $unread_count > 0 ? 'flex' : 'none'; ?>">
+                                <?php echo $unread_count > 9 ? '9+' : $unread_count; ?>
+                            </span>
+                        </a>
+                        
+                        <?php if (isAdmin()): ?>
+                            <!-- Admin navigation -->
+                            <a href="admin/index.php" class="<?php echo getNavLinkClasses('index.php', 'admin'); ?> bg-red-600 hover:bg-red-700">
+                                Admin Panel
+                            </a>
+                        <?php endif; ?>
                         
                         <!-- User dropdown or simple display -->
                         <div class="flex items-center space-x-4">
@@ -146,6 +198,25 @@ function getMobileNavLinkClasses($page, $dir = '') {
                     <a href="my_bids.php" class="<?php echo getMobileNavLinkClasses('my_bids.php'); ?>">
                         My Bids
                     </a>
+                    
+                    <!-- Mobile Notifications -->
+                    <a href="notifications.php" class="<?php echo getMobileNavLinkClasses('notifications.php'); ?> relative">
+                        Notifications
+                        <?php 
+                        $unread_count = getUnreadNotificationCount(getCurrentUserId());
+                        ?>
+                        <span class="notification-badge absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center" 
+                              style="display: <?php echo $unread_count > 0 ? 'flex' : 'none'; ?>">
+                            <?php echo $unread_count > 9 ? '9+' : $unread_count; ?>
+                        </span>
+                    </a>
+                    
+                    <?php if (isAdmin()): ?>
+                        <!-- Admin mobile navigation -->
+                        <a href="admin/index.php" class="<?php echo getMobileNavLinkClasses('index.php', 'admin'); ?> bg-red-600 hover:bg-red-700">
+                            Admin Panel
+                        </a>
+                    <?php endif; ?>
                     
                     <!-- User info -->
                     <div class="px-3 py-2 text-blue-100 text-sm border-t border-blue-600 mt-2 pt-2">
