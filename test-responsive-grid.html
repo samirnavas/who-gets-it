@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Grid Test</title>
+    <link rel="stylesheet" href="assets/css/responsive-foundation.css">
+    <link rel="stylesheet" href="assets/css/auction-cards.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #f9fafb;
+        }
+        .test-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .test-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .test-controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .test-button {
+            padding: 0.5rem 1rem;
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .test-button:hover {
+            background: var(--color-primary-dark);
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>Responsive Auction Grid Test</h1>
+            <p>Resize your browser window to see the responsive behavior: 1 column (mobile) → 2 columns (tablet) → 3 columns (desktop) → 4 columns (large desktop)</p>
+        </div>
+        
+        <div class="test-controls">
+            <button class="test-button" onclick="showSkeletonCards(8)">Show Skeleton Loading</button>
+            <button class="test-button" onclick="hideSkeletonCards()">Show Auction Cards</button>
+            <button class="test-button" onclick="showGridLoadingState()">Show Loading Overlay</button>
+            <button class="test-button" onclick="hideGridLoadingState()">Hide Loading Overlay</button>
+        </div>
+
+        <!-- Responsive Auction Items Grid -->
+        <div class="auction-cards-grid" id="auctionGrid">
+            <!-- Sample auction cards -->
+            <article class="auction-card" role="article">
+                <a href="#" class="auction-card-link">
+                    <div class="auction-card-image">
+                        <img src="https://via.placeholder.com/400x300?text=Vintage+Watch" alt="Vintage Watch" loading="lazy">
+                        <div class="auction-card-overlay"></div>
+                        <div class="auction-card-seller">john_doe</div>
+                        <div class="auction-card-status active">Active</div>
+                    </div>
+                    <div class="auction-card-content">
+                        <h3 class="auction-card-title">Vintage Rolex Submariner</h3>
+                        <p class="auction-card-description">A rare vintage Rolex Submariner from 1965 in excellent condition. This timepiece features the original dial and hands.</p>
+                        <div class="auction-card-price">
+                            <div class="auction-card-price-label">Current Bid</div>
+                            <div class="auction-card-price-amount">
+                                <span>$15,750.00</span>
+                                <svg class="auction-card-price-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="auction-card-timer">
+                            <div class="flex items-center space-x-2">
+                                <svg class="auction-card-timer-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span class="auction-card-timer-text">2d 14h 32m 15s</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </article>
+
+            <article class="auction-card" role="article">
+                <a href="#" class="auction-card-link">
+                    <div class="auction-card-image">
+                        <img src="https://via.placeholder.com/400x300?text=Art+Painting" alt="Abstract Art" loading="lazy">
+                        <div class="auction-card-overlay"></div>
+                        <div class="auction-card-seller">art_lover</div>
+                        <div class="auction-card-status ending-soon">Ending Soon</div>
+                    </div>
+                    <div class="auction-card-content">
+                        <h3 class="auction-card-title">Abstract Expressionist Painting</h3>
+                        <p class="auction-card-description">Original abstract painting by emerging artist. Mixed media on canvas, 24x36 inches. Vibrant colors and dynamic composition.</p>
+                        <div class="auction-card-price">
+                            <div class="auction-card-price-label">Current Bid</div>
+                            <div class="auction-card-price-amount">
+                                <span>$850.00</span>
+                                <svg class="auction-card-price-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="auction-card-timer urgent">
+                            <div class="flex items-center space-x-2">
+                                <svg class="auction-card-timer-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span class="auction-card-timer-text">45m 12s</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </article>
+
+            <article class="auction-card" role="article">
+                <a href="#" class="auction-card-link">
+                    <div class="auction-card-image">
+                        <img src="https://via.placeholder.com/400x300?text=Vintage+Camera" alt="Vintage Camera" loading="lazy">
+                        <div class="auction-card-overlay"></div>
+                        <div class="auction-card-seller">photo_pro</div>
+                        <div class="auction-card-status active">Active</div>
+                    </div>
+                    <div class="auction-card-content">
+                        <h3 class="auction-card-title">Leica M3 Film Camera</h3>
+                        <p class="auction-card-description">Classic Leica M3 35mm rangefinder camera from 1954. Includes original leather case and documentation. Fully functional.</p>
+                        <div class="auction-card-price">
+                            <div class="auction-card-price-label">Current Bid</div>
+                            <div class="auction-card-price-amount">
+                                <span>$2,400.00</span>
+                                <svg class="auction-card-price-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="auction-card-timer">
+                            <div class="flex items-center space-x-2">
+                                <svg class="auction-card-timer-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span class="auction-card-timer-text">1d 8h 45m 30s</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </article>
+
+            <article class="auction-card" role="article">
+                <a href="#" class="auction-card-link">
+                    <div class="auction-card-image">
+                        <img src="https://via.placeholder.com/400x300?text=Antique+Vase" alt="Antique Vase" loading="lazy">
+                        <div class="auction-card-overlay"></div>
+                        <div class="auction-card-seller">antique_hunter</div>
+                        <div class="auction-card-status active">Active</div>
+                    </div>
+                    <div class="auction-card-content">
+                        <h3 class="auction-card-title">Ming Dynasty Porcelain Vase</h3>
+                        <p class="auction-card-description">Authentic Ming Dynasty blue and white porcelain vase, circa 1400-1450. Excellent provenance and condition. Museum quality piece.</p>
+                        <div class="auction-card-price">
+                            <div class="auction-card-price-label">Current Bid</div>
+                            <div class="auction-card-price-amount">
+                                <span>$45,000.00</span>
+                                <svg class="auction-card-price-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="auction-card-timer">
+                            <div class="flex items-center space-x-2">
+                                <svg class="auction-card-timer-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span class="auction-card-timer-text">5d 12h 18m 42s</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </article>
+
+            <article class="auction-card" role="article">
+                <a href="#" class="auction-card-link">
+                    <div class="auction-card-image">
+                        <img src="https://via.placeholder.com/400x300?text=Sports+Card" alt="Baseball Card" loading="lazy">
+                        <div class="auction-card-overlay"></div>
+                        <div class="auction-card-seller">card_collector</div>
+                        <div class="auction-card-status active">Active</div>
+                    </div>
+                    <div class="auction-card-content">
+                        <h3 class="auction-card-title">1952 Topps Mickey Mantle</h3>
+                        <p class="auction-card-description">Rare 1952 Topps Mickey Mantle rookie card #311. PSA Grade 8 (Near Mint-Mint). One of the most iconic baseball cards ever produced.</p>
+                        <div class="auction-card-price">
+                            <div class="auction-card-price-label">Current Bid</div>
+                            <div class="auction-card-price-amount">
+                                <span>$125,000.00</span>
+                                <svg class="auction-card-price-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="auction-card-timer">
+                            <div class="flex items-center space-x-2">
+                                <svg class="auction-card-timer-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span class="auction-card-timer-text">3d 6h 22m 8s</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </article>
+
+            <article class="auction-card" role="article">
+                <a href="#" class="auction-card-link">
+                    <div class="auction-card-image">
+                        <img src="https://via.placeholder.com/400x300?text=Jewelry" alt="Diamond Ring" loading="lazy">
+                        <div class="auction-card-overlay"></div>
+                        <div class="auction-card-seller">jewelry_expert</div>
+                        <div class="auction-card-status active">Active</div>
+                    </div>
+                    <div class="auction-card-content">
+                        <h3 class="auction-card-title">Art Deco Diamond Ring</h3>
+                        <p class="auction-card-description">Stunning 1920s Art Deco platinum ring featuring a 2.5 carat center diamond surrounded by smaller diamonds. GIA certified.</p>
+                        <div class="auction-card-price">
+                            <div class="auction-card-price-label">Current Bid</div>
+                            <div class="auction-card-price-amount">
+                                <span>$8,500.00</span>
+                                <svg class="auction-card-price-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="auction-card-timer">
+                            <div class="flex items-center space-x-2">
+                                <svg class="auction-card-timer-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span class="auction-card-timer-text">4d 16h 55m 33s</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </article>
+
+            <article class="auction-card" role="article">
+                <a href="#" class="auction-card-link">
+                    <div class="auction-card-image">
+                        <img src="https://via.placeholder.com/400x300?text=Book" alt="Rare Book" loading="lazy">
+                        <div class="auction-card-overlay"></div>
+                        <div class="auction-card-seller">book_lover</div>
+                        <div class="auction-card-status active">Active</div>
+                    </div>
+                    <div class="auction-card-content">
+                        <h3 class="auction-card-title">First Edition Hemingway</h3>
+                        <p class="auction-card-description">First edition "The Sun Also Rises" by Ernest Hemingway, 1926. Original dust jacket in very fine condition. A true collector's item.</p>
+                        <div class="auction-card-price">
+                            <div class="auction-card-price-label">Current Bid</div>
+                            <div class="auction-card-price-amount">
+                                <span>$3,200.00</span>
+                                <svg class="auction-card-price-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="auction-card-timer">
+                            <div class="flex items-center space-x-2">
+                                <svg class="auction-card-timer-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span class="auction-card-timer-text">6d 2h 11m 47s</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </article>
+
+            <article class="auction-card" role="article">
+                <a href="#" class="auction-card-link">
+                    <div class="auction-card-image">
+                        <img src="https://via.placeholder.com/400x300?text=Sculpture" alt="Bronze Sculpture" loading="lazy">
+                        <div class="auction-card-overlay"></div>
+                        <div class="auction-card-seller">art_dealer</div>
+                        <div class="auction-card-status active">Active</div>
+                    </div>
+                    <div class="auction-card-content">
+                        <h3 class="auction-card-title">Bronze Horse Sculpture</h3>
+                        <p class="auction-card-description">Mid-century modern bronze horse sculpture by renowned artist. Limited edition piece with certificate of authenticity. Museum provenance.</p>
+                        <div class="auction-card-price">
+                            <div class="auction-card-price-label">Current Bid</div>
+                            <div class="auction-card-price-amount">
+                                <span>$12,750.00</span>
+                                <svg class="auction-card-price-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="auction-card-timer">
+                            <div class="flex items-center space-x-2">
+                                <svg class="auction-card-timer-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span class="auction-card-timer-text">7d 9h 33m 21s</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </article>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced skeleton loading functionality
+        function showSkeletonCards(count = 8) {
+            const grid = document.querySelector('.auction-cards-grid');
+            if (!grid) return;
+
+            // Clear existing content
+            grid.innerHTML = '';
+            grid.className = 'auction-cards-skeleton-grid';
+
+            // Create skeleton cards with enhanced structure
+            for (let i = 0; i < count; i++) {
+                const skeleton = document.createElement('div');
+                skeleton.className = 'auction-card-skeleton';
+                skeleton.setAttribute('aria-hidden', 'true');
+                skeleton.innerHTML = `
+                    <div class="auction-card-skeleton-image"></div>
+                    <div class="auction-card-skeleton-content">
+                        <div class="auction-card-skeleton-title"></div>
+                        <div class="auction-card-skeleton-description"></div>
+                        <div class="auction-card-skeleton-description"></div>
+                        <div class="auction-card-skeleton-description"></div>
+                        <div class="auction-card-skeleton-price"></div>
+                        <div class="auction-card-skeleton-timer"></div>
+                    </div>
+                `;
+                grid.appendChild(skeleton);
+            }
+        }
+
+        // Hide skeleton and show actual cards with smooth transition
+        function hideSkeletonCards() {
+            location.reload(); // Simple reload to show original cards
+        }
+
+        // Enhanced grid loading with better perceived performance
+        function showGridLoadingState() {
+            const grid = document.querySelector('.auction-cards-grid');
+            if (!grid) return;
+
+            // Add loading overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'auction-cards-loading-overlay';
+            overlay.innerHTML = `
+                <div class="auction-cards-loading-indicator">
+                    <div class="auction-cards-loading-spinner"></div>
+                    <div class="auction-cards-loading-text">Updating auctions...</div>
+                </div>
+            `;
+            
+            const container = grid.parentElement;
+            if (container) {
+                container.style.position = 'relative';
+                container.appendChild(overlay);
+            }
+        }
+
+        // Hide grid loading state
+        function hideGridLoadingState() {
+            const overlay = document.querySelector('.auction-cards-loading-overlay');
+            if (overlay) {
+                overlay.classList.add('fade-out');
+                setTimeout(() => {
+                    overlay.remove();
+                }, 300);
+            }
+        }
+
+        // Enhanced responsive grid adjustment with better performance
+        function adjustGridColumns() {
+            const grid = document.querySelector('.auction-cards-grid');
+            if (!grid) return;
+
+            const containerWidth = grid.offsetWidth;
+            const viewportWidth = window.innerWidth;
+            
+            // Define responsive breakpoints and card sizes
+            let cardMinWidth = 280;
+            let maxColumns = 4;
+            let gap = 24; // Default gap in pixels
+
+            // Adjust parameters based on viewport
+            if (viewportWidth >= 1536) {
+                cardMinWidth = 320;
+                maxColumns = 4;
+                gap = 40;
+            } else if (viewportWidth >= 1280) {
+                cardMinWidth = 300;
+                maxColumns = 4;
+                gap = 32;
+            } else if (viewportWidth >= 1024) {
+                cardMinWidth = 280;
+                maxColumns = 3;
+                gap = 32;
+            } else if (viewportWidth >= 768) {
+                cardMinWidth = 280;
+                maxColumns = 2;
+                gap = 24;
+            } else if (viewportWidth >= 640) {
+                cardMinWidth = 260;
+                maxColumns = 2;
+                gap = 24;
+            } else {
+                cardMinWidth = 280;
+                maxColumns = 1;
+                gap = 20;
+            }
+
+            // Calculate optimal column count
+            let columns = Math.floor((containerWidth + gap) / (cardMinWidth + gap));
+            columns = Math.max(1, Math.min(maxColumns, columns));
+
+            console.log(`Viewport: ${viewportWidth}px, Container: ${containerWidth}px, Columns: ${columns}`);
+        }
+
+        // Debounce function for performance
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            adjustGridColumns();
+            
+            // Add resize listener
+            window.addEventListener('resize', debounce(adjustGridColumns, 250));
+            
+            console.log('Responsive grid test initialized');
+        });
+    </script>
+</body>
+</html>

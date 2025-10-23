@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Item Detail Page
  * Displays complete item information and bidding functionality
@@ -82,6 +82,9 @@ $page_title = htmlspecialchars($item['title']);
 
 // Include header
 include 'includes/header.php';
+
+// Include mobile auction interactions CSS
+echo '<link rel="stylesheet" href="assets/css/mobile-auction-interactions.css">';
 ?>
 
 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -193,30 +196,31 @@ include 'includes/header.php';
                     </div>
                 </div>
             <?php else: ?>
-                <!-- Current Bid for Active Auctions -->
-                <div class="bg-gray-50 rounded-lg p-4">
-                    <div class="text-sm text-gray-600 mb-1">Current Bid</div>
-                    <div class="text-3xl font-bold text-green-600">
+                <!-- Enhanced Mobile Current Bid Display -->
+                <div class="price-display-mobile">
+                    <div class="price-display-mobile-label">Current Bid</div>
+                    <div class="price-display-mobile-amount">
                         $<?php echo number_format($item['current_bid'], 2); ?>
                     </div>
                     <?php if ($item['highest_bidder_id']): ?>
                         <?php
                         $highest_bidder = fetchOne("SELECT username FROM users WHERE id = ?", [$item['highest_bidder_id']]);
                         ?>
-                        <div class="text-sm text-gray-500 mt-1">
-                            Highest bidder: <?php echo htmlspecialchars($highest_bidder['username']); ?>
+                        <div class="text-sm text-gray-600 mt-2 font-medium">
+                            Leading: <?php echo htmlspecialchars($highest_bidder['username']); ?>
                         </div>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
 
-            <!-- Countdown Timer / Completion Info -->
+            <!-- Enhanced Mobile Countdown Timer -->
             <?php if ($is_active): ?>
-                <div class="bg-blue-50 rounded-lg p-4">
-                    <div class="text-sm text-blue-600 mb-1">Time Remaining</div>
-                    <div id="countdown-timer" class="text-2xl font-bold text-blue-800">
+                <div class="countdown-mobile" id="countdown-container">
+                    <div class="countdown-mobile-label">Time Remaining</div>
+                    <div id="countdown-timer" class="countdown-mobile-time">
                         Loading...
                     </div>
+                    <div id="countdown-segments" class="countdown-segments"></div>
                 </div>
             <?php else: ?>
                 <div class="bg-gray-50 rounded-lg p-4">
@@ -258,80 +262,110 @@ include 'includes/header.php';
                 </p>
             </div>
 
-            <!-- Bidding Form -->
+            <!-- Enhanced Mobile-Friendly Bidding Form -->
             <?php if ($is_active && isLoggedIn()): ?>
-                <div class="border-t pt-6">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Place Your Bid</h3>
-                    
-                    <?php if (getCurrentUserId() == $item['user_id']): ?>
-                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                            <p class="text-yellow-800">You cannot bid on your own item.</p>
-                        </div>
-                    <?php else: ?>
-                        <form method="POST" action="" class="space-y-4">
-                            <div>
-                                <label for="bid_amount" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Bid Amount (minimum: $<?php echo number_format($item['current_bid'] + 0.01, 2); ?>)
-                                </label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <span class="text-gray-500 sm:text-sm">$</span>
+                        <div class="border-t pt-6">
+                              <h3 class="text-lg font-medium text-gray-900 mb-4">Place Your Bid</h3>
+                              
+                              <?php if (getCurrentUserId() == $item['user_id']): ?>
+                                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                          <p class="text-yellow-800">You cannot bid on your own item.</p>
                                     </div>
-                                    <input 
-                                        type="number" 
-                                        id="bid_amount" 
-                                        name="bid_amount" 
-                                        step="0.01" 
-                                        min="<?php echo htmlspecialchars($item['current_bid'] + 0.01); ?>"
-                                        class="block w-full pl-7 pr-12 border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                        placeholder="<?php echo number_format($item['current_bid'] + 1, 2); ?>"
-                                        required
-                                    >
-                                </div>
-                            </div>
-                            
-                            <button 
-                                type="submit" 
-                                name="place_bid"
-                                class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200"
-                            >
-                                Place Bid
-                            </button>
-                        </form>
-                    <?php endif; ?>
-                </div>
-            <?php elseif ($is_active && !isLoggedIn()): ?>
-                <div class="border-t pt-6">
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <p class="text-blue-800">
-                            <a href="auth/login.php?redirect=<?php echo urlencode($_SERVER['REQUEST_URI']); ?>" class="font-medium hover:underline">
-                                Sign in
-                            </a> 
-                            to place a bid on this item.
-                        </p>
-                    </div>
-                </div>
-            <?php elseif (!$is_active): ?>
-                <div class="border-t pt-6">
-                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        <?php if ($item['status'] === 'ended'): ?>
-                            <?php if ($winner_info): ?>
-                                <p class="text-gray-600">
-                                    This auction has been completed. 
-                                    <strong><?php echo htmlspecialchars($winner_info['username']); ?></strong> 
-                                    won with a bid of <strong>$<?php echo number_format($winner_info['winning_bid'], 2); ?></strong>.
-                                </p>
-                            <?php else: ?>
-                                <p class="text-gray-600">This auction has ended with no valid bids.</p>
-                            <?php endif; ?>
-                        <?php elseif ($item['status'] === 'cancelled'): ?>
-                            <p class="text-gray-600">This auction has been cancelled by an administrator.</p>
-                        <?php else: ?>
-                            <p class="text-gray-600">This auction has expired.</p>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            <?php endif; ?>
+                              <?php else: ?>
+                                    <div class="w-full">
+                                                                                    <div class="grid grid-cols-3 gap-3 md:hidden mb-4">
+                                                <?php 
+                                                $current_bid = $item['current_bid'];
+                                                $quick_bids = [
+                                                      $current_bid + 1,
+                                                      $current_bid + 5,
+                                                      $current_bid + 10
+                                                ];
+                                                ?>
+                                                <?php foreach ($quick_bids as $quick_bid): ?>
+                                                      <button type="button" 
+                                                                  class="w-full py-2 px-3 bg-gray-50 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out" 
+                                                                  onclick="setQuickBid(<?php echo $quick_bid; ?>)"
+                                                                  aria-label="Quick bid $<?php echo number_format($quick_bid, 0); ?>">
+                                                            $<?php echo number_format($quick_bid, 0); ?>
+                                                      </button>
+                                                <?php endforeach; ?>
+                                          </div>
+                                          
+                                          <form method="POST" action="" class="space-y-6">
+                                                <div>
+                                                      <label for="bid_amount" class="block text-sm font-medium text-gray-700">
+                                                            Bid Amount (minimum: $<?php echo number_format($item['current_bid'] + 0.01, 2); ?>)
+               
+                                                </label>
+                                                      <div class="relative mt-1 rounded-md shadow-sm">
+                                                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                                  <span class="text-gray-500 text-lg font-semibold">$</span>
+                                                            </div>
+                                                            <input 
+                                                                  type="number" 
+                                                                  id="bid_amount" 
+                                                                  name="bid_amount" 
+                                                                  step="0.01" 
+                                                                  min="<?php echo htmlspecialchars($item['current_bid'] + 0.01); ?>"
+                                                                  class="block w-full h-10 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm pl-10"
+                                                                  placeholder="<?php echo number_format($item['current_bid'] + 1, 2); ?>"
+                                                                  required
+                                                                  aria-describedby="bid-help"
+                                                            >
+                                                      </div>
+                                                    <div id="bid-help" class="mt-2 text-sm text-gray-500">
+                                                            Enter an amount higher than the current bid to place your bid.
+                                                      </div>
+                                                </div>
+                                                
+                                                <div>
+                                      <button 
+                                                            type="submit" 
+                                                            name="place_bid"
+                                                            img class="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out"
+                                                            aria-label="Place your bid" >
+                                                            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true" class="mr-2">
+                                                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                                                          </svg>
+                                                            <span>Place Bid</span>
+                                                      </button>
+                                   </form>
+                                    </div>
+                              <?php endif; ?>
+                        </div>
+                  <?php elseif ($is_active && !isLoggedIn()): ?>
+                      <div class="border-t pt-6">
+                              <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <p class="text-blue-800">
+                                          <a href="auth/login.php?redirect=<?php echo urlencode($_SERVER['REQUEST_URI']); ?>" class="font-medium hover:underline">
+                                               Sign in
+                                          </a> 
+                                          to place a bid on this item.
+                                    </p>
+                           _BIDS </div>
+                      </div>
+                  <?php elseif (!$is_active): ?>
+                        <div class="border-t pt-6">
+                              <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                               <?php if ($item['status'] === 'ended'): ?>
+                                          <?php if ($winner_info): ?>
+                                             <p class="text-gray-600">
+                                                      This auction has been completed. 
+                                       im          <strong><?php echo htmlspecialchars($winner_info['username']); ?></strong> 
+                                                      won with a bid of <strong>$<?php echo number_format($winner_info['winning_bid'], 2); ?></strong>.
+                                                </p>
+                              s          <?php else: ?>
+                                                <p class="text-gray-600">This auction has ended with no valid bids.</p>
+                                          <?php endif; ?>
+                                    <?php elseif ($item['status'] === 'cancelled'): ?>
+                                           <p class="text-gray-600">This auction has been cancelled by an administrator.</p>
+                                    <?php else: ?>
+                                          <p class="text-gray-600">This auction has expired.</p>
+                        section                   <?php endif; ?>
+                              </div>
+                        </div>
+                  <?php endif; ?>
 
             <!-- Auction Details -->
             <div class="border-t pt-4">
@@ -573,6 +607,34 @@ include 'includes/header.php';
     </div>
 </div>
 
+<!-- Mobile Navigation for Auction Browsing -->
+<?php if ($is_active): ?>
+<div class="auction-nav-mobile md:hidden">
+    <button class="auction-nav-mobile-button" onclick="window.history.back()" aria-label="Go back">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Back
+    </button>
+    
+    <button class="auction-nav-mobile-button" onclick="window.location.href='index.php'" aria-label="View all auctions">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="4 6h16M4 12h16M4 18h16"/>
+        </svg>
+        All Auctions
+    </button>
+    
+    <?php if (isLoggedIn() && getCurrentUserId() != $item['user_id']): ?>
+    <button class="auction-nav-mobile-button primary" onclick="document.getElementById('bid_amount').focus()" aria-label="Focus bid input">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+        </svg>
+        Bid Now
+    </button>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
+
 <!-- JavaScript for Countdown Timer -->
 <script>
 // Countdown timer functionality
@@ -608,7 +670,393 @@ function updateCountdown() {
 
 // Update countdown immediately and then every second
 updateCountdown();
-setInterval(updateCountdown, 1000);
+const countdownInterval = setInterval(updateCountdown, 1000);
+
+// Enhanced mobile interactions with improved haptic feedback
+function setQuickBid(amount) {
+    const bidInput = document.getElementById('bid_amount');
+    if (bidInput) {
+        bidInput.value = amount.toFixed(2);
+        bidInput.focus();
+        addHapticFeedback(bidInput, 'medium');
+        
+        // Visual feedback for the selected quick bid button
+        const quickBidButtons = document.querySelectorAll('.quick-bid-button');
+        quickBidButtons.forEach(btn => btn.classList.remove('selected'));
+        event.target.classList.add('selected');
+    }
+}
+
+function addHapticFeedback(element, intensity = 'light') {
+    if (element) {
+        // Remove any existing haptic classes
+        element.classList.remove('haptic-feedback', 'haptic-feedback-light', 'haptic-feedback-medium', 'haptic-feedback-strong');
+        
+        // Add appropriate haptic class
+        element.classList.add(`haptic-feedback-${intensity}`);
+        
+        setTimeout(() => {
+            element.classList.remove(`haptic-feedback-${intensity}`);
+        }, intensity === 'strong' ? 300 : intensity === 'medium' ? 200 : 100);
+    }
+    
+    // Try to trigger actual haptic feedback on supported devices
+    if ('vibrate' in navigator) {
+        const vibrationPattern = {
+            light: 30,
+            medium: 50,
+            strong: [50, 50, 50]
+        };
+        navigator.vibrate(vibrationPattern[intensity] || 30);
+    }
+}
+
+// Enhanced countdown with mobile-specific styling and segments
+function updateCountdown() {
+    const endTime = new Date("<?php echo htmlspecialchars(date('Y-m-d H:i:s', strtotime($item['end_time']))); ?>").getTime();
+    const now = new Date().getTime();
+    const distance = endTime - now;
+    
+    const timerElement = document.getElementById('countdown-timer');
+    const containerElement = document.getElementById('countdown-container');
+    const segmentsElement = document.getElementById('countdown-segments');
+    
+    if (!timerElement || !containerElement) return;
+    
+    if (distance < 0) {
+        timerElement.innerHTML = "EXPIRED";
+        containerElement.className = "countdown-mobile ended";
+        if (segmentsElement) segmentsElement.style.display = 'none';
+        clearInterval(countdownInterval);
+        return;
+    }
+    
+    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+    
+    // Mobile-friendly time display
+    if (window.innerWidth <= 768) {
+        // Use segments for mobile
+        if (segmentsElement) {
+            segmentsElement.innerHTML = `
+                ${days > 0 ? `<div class="countdown-segment">
+                    <span class="countdown-segment-number">${days}</span>
+                    <span class="countdown-segment-label">Days</span>
+                </div>` : ''}
+                ${hours > 0 || days > 0 ? `<div class="countdown-segment">
+                    <span class="countdown-segment-number">${hours}</span>
+                    <span class="countdown-segment-label">Hours</span>
+                </div>` : ''}
+                <div class="countdown-segment">
+                    <span class="countdown-segment-number">${minutes}</span>
+                    <span class="countdown-segment-label">Min</span>
+                </div>
+                <div class="countdown-segment">
+                    <span class="countdown-segment-number">${seconds}</span>
+                    <span class="countdown-segment-label">Sec</span>
+                </div>
+            `;
+            timerElement.innerHTML = '';
+        }
+    } else {
+        // Desktop format
+        let timeString = "";
+        if (days > 0) {
+            timeString += days + "d ";
+        }
+        if (hours > 0 || days > 0) {
+            timeString += hours + "h ";
+        }
+        timeString += minutes + "m " + seconds + "s";
+        
+        timerElement.innerHTML = timeString;
+        if (segmentsElement) segmentsElement.innerHTML = '';
+    }
+    
+    // Update container class based on urgency
+    if (distance < 3600000) { // Less than 1 hour
+        containerElement.className = "countdown-mobile urgent";
+        // Add haptic feedback for urgent countdown
+        if (distance < 300000 && seconds % 10 === 0) { // Last 5 minutes, every 10 seconds
+            addHapticFeedback(containerElement, 'light');
+        }
+    } else if (distance < 86400000) { // Less than 1 day
+        containerElement.className = "countdown-mobile warning";
+    } else {
+        containerElement.className = "countdown-mobile";
+    }
+}
+
+// Enhanced swipe gesture support for mobile auction browsing
+let startX = 0;
+let startY = 0;
+let isSwipeGesture = false;
+let swipeThreshold = 80;
+let swipeVelocityThreshold = 0.3;
+let swipeStartTime = 0;
+
+function initializeSwipeGestures() {
+    const swipeArea = document.querySelector('.max-w-6xl');
+    if (!swipeArea || window.innerWidth > 768) return; // Only on mobile
+    
+    swipeArea.classList.add('touch-gesture-area');
+    
+    // Show swipe hint on first visit
+    showSwipeHint();
+    
+    swipeArea.addEventListener('touchstart', function(e) {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        swipeStartTime = Date.now();
+        isSwipeGesture = false;
+    }, { passive: true });
+    
+    swipeArea.addEventListener('touchmove', function(e) {
+        if (!startX || !startY) return;
+        
+        const currentX = e.touches[0].clientX;
+        const currentY = e.touches[0].clientY;
+        
+        const diffX = startX - currentX;
+        const diffY = startY - currentY;
+        
+        // Check if it's a horizontal swipe (more horizontal than vertical movement)
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 30) {
+            isSwipeGesture = true;
+            
+            // Prevent default scrolling during swipe
+            e.preventDefault();
+            
+            // Visual feedback during swipe
+            const swipeProgress = Math.min(Math.abs(diffX) / swipeThreshold, 1);
+            const translateX = diffX * 0.3; // Damped movement
+            
+            swipeArea.style.transform = `translateX(${-translateX}px)`;
+            swipeArea.style.opacity = 1 - (swipeProgress * 0.2);
+            
+            if (diffX > 0) {
+                swipeArea.classList.add('swipe-left');
+                swipeArea.classList.remove('swipe-right');
+            } else {
+                swipeArea.classList.add('swipe-right');
+                swipeArea.classList.remove('swipe-left');
+            }
+        }
+    }, { passive: false });
+    
+    swipeArea.addEventListener('touchend', function(e) {
+        if (isSwipeGesture) {
+            const diffX = startX - e.changedTouches[0].clientX;
+            const swipeTime = Date.now() - swipeStartTime;
+            const swipeVelocity = Math.abs(diffX) / swipeTime;
+            
+            // Reset visual state
+            swipeArea.style.transform = '';
+            swipeArea.style.opacity = '';
+            swipeArea.classList.remove('swipe-left', 'swipe-right');
+            
+            // Check if swipe meets threshold (distance or velocity)
+            if (Math.abs(diffX) > swipeThreshold || swipeVelocity > swipeVelocityThreshold) {
+                addHapticFeedback(swipeArea, 'medium');
+                
+                if (diffX > 0) {
+                    // Swipe left - next auction
+                    navigateToNextAuction();
+                } else {
+                    // Swipe right - previous auction or back
+                    navigateToPreviousAuction();
+                }
+            }
+        }
+        
+        startX = 0;
+        startY = 0;
+        isSwipeGesture = false;
+        swipeStartTime = 0;
+    }, { passive: true });
+}
+
+function navigateToNextAuction() {
+    showSwipeIndicator('right', 'Next Auction');
+    
+    // Get current item ID and fetch next auction
+    const currentItemId = <?php echo (int)$item_id; ?>;
+    
+    // For now, show feedback. In a real implementation, you would:
+    // 1. Fetch the next auction item ID from the server
+    // 2. Navigate to item.php?id=nextItemId
+    
+    setTimeout(() => {
+        // Example navigation (would be replaced with actual next item ID)
+        // window.location.href = `item.php?id=${nextItemId}`;
+        console.log('Navigate to next auction');
+    }, 500);
+}
+
+function navigateToPreviousAuction() {
+    // Check if we can go back in history, otherwise go to auction list
+    if (window.history.length > 1) {
+        showSwipeIndicator('left', 'Go Back');
+        setTimeout(() => {
+            window.history.back();
+        }, 300);
+    } else {
+        showSwipeIndicator('left', 'Auction List');
+        setTimeout(() => {
+            window.location.href = 'index.php';
+        }, 300);
+    }
+}
+
+function showSwipeIndicator(direction, text) {
+    const indicator = document.createElement('div');
+    indicator.className = `swipe-indicator ${direction} show`;
+    indicator.innerHTML = direction === 'left' ? 
+        '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>' :
+        '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>';
+    
+    document.body.appendChild(indicator);
+    
+    // Show text hint
+    if (text) {
+        const textHint = document.createElement('div');
+        textHint.className = 'swipe-hint show';
+        textHint.textContent = text;
+        document.body.appendChild(textHint);
+        
+        setTimeout(() => {
+            textHint.classList.remove('show');
+            setTimeout(() => {
+                if (document.body.contains(textHint)) {
+                    document.body.removeChild(textHint);
+                }
+            }, 300);
+        }, 1200);
+    }
+    
+    setTimeout(() => {
+        indicator.classList.remove('show');
+        setTimeout(() => {
+            if (document.body.contains(indicator)) {
+                document.body.removeChild(indicator);
+            }
+        }, 300);
+    }, 1500);
+}
+
+function showSwipeHint() {
+    // Show hint only once per session
+    if (sessionStorage.getItem('swipeHintShown')) return;
+    
+    setTimeout(() => {
+        const hint = document.createElement('div');
+        hint.className = 'swipe-hint show';
+        hint.textContent = 'Swipe left/right to navigate';
+        document.body.appendChild(hint);
+        
+        setTimeout(() => {
+            hint.classList.remove('show');
+            setTimeout(() => {
+                if (document.body.contains(hint)) {
+                    document.body.removeChild(hint);
+                }
+            }, 300);
+        }, 3000);
+        
+        sessionStorage.setItem('swipeHintShown', 'true');
+    }, 2000);
+}
+
+// Initialize mobile interactions when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    initializeSwipeGestures();
+    initializeMobileInteractions();
+    
+    // Add touch feedback to all interactive elements
+    const interactiveElements = document.querySelectorAll('button, .quick-bid-button, .bid-button-mobile, .auction-nav-mobile-button');
+    interactiveElements.forEach(element => {
+        element.addEventListener('touchstart', function() {
+            addHapticFeedback(this, 'light');
+        }, { passive: true });
+    });
+    
+    // Enhanced bid input focus handling for mobile
+    const bidInput = document.getElementById('bid_amount');
+    if (bidInput) {
+        bidInput.addEventListener('focus', function() {
+            // Scroll to input on mobile
+            if (window.innerWidth <= 768) {
+                setTimeout(() => {
+                    this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            }
+        });
+        
+        bidInput.addEventListener('input', function() {
+            // Validate bid amount in real-time
+            const currentBid = <?php echo $item['current_bid']; ?>;
+            const minBid = currentBid + 0.01;
+            const value = parseFloat(this.value);
+            
+            if (value && value <= currentBid) {
+                this.style.borderColor = '#EF4444';
+                this.setAttribute('aria-invalid', 'true');
+            } else {
+                this.style.borderColor = '#3B82F6';
+                this.setAttribute('aria-invalid', 'false');
+            }
+        });
+    }
+});
+
+function initializeMobileInteractions() {
+    // Add CSS class for mobile-specific styling
+    if (window.innerWidth <= 768) {
+        document.body.classList.add('mobile-device');
+    }
+    
+    // Handle orientation change
+    window.addEventListener('orientationchange', function() {
+        setTimeout(() => {
+            // Recalculate layout after orientation change
+            if (window.innerWidth <= 768) {
+                document.body.classList.add('mobile-device');
+            } else {
+                document.body.classList.remove('mobile-device');
+            }
+        }, 100);
+    });
+    
+    // Prevent double-tap zoom on buttons
+    const buttons = document.querySelectorAll('button, .quick-bid-button, .bid-button-mobile');
+    buttons.forEach(button => {
+        button.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            this.click();
+        });
+    });
+    
+    // Add visual feedback for form validation
+    const form = document.querySelector('form[method="POST"]');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const submitButton = this.querySelector('.bid-button-mobile');
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.innerHTML = `
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="animate-spin">
+                        <circle cx="12" cy="12" r="10" stroke-width="4" stroke="currentColor" stroke-opacity="0.25"/>
+                        <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                    </svg>
+                    <span>Processing...</span>
+                `;
+                addHapticFeedback(submitButton, 'strong');
+            }
+        });
+    }
+}
 </script>
 
 <?php include 'includes/footer.php'; ?>

@@ -63,10 +63,10 @@ $performance_stats = getDatabasePerformanceStats();
                     <p class="card-text">
                         Optimize database tables to improve query performance and reclaim unused space.
                     </p>
-                    <form method="POST" class="d-inline">
+                    <form method="POST" class="form-responsive" style="display: inline;">
                         <?= getCSRFTokenField() ?>
                         <input type="hidden" name="action" value="optimize_tables">
-                        <button type="submit" class="btn btn-warning" 
+                        <button type="submit" class="form-button-secondary border-orange-300 text-orange-700 hover:bg-orange-50" 
                                 onclick="return confirm('This may take a few minutes. Continue?')">
                             Optimize Database Tables
                         </button>

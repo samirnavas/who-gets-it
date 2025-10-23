@@ -110,19 +110,19 @@ try {
                                             <td>
                                                 <?php if ($user['id'] != getCurrentUserId()): ?>
                                                     <?php if ($user['role'] === 'user'): ?>
-                                                        <form method="POST" style="display: inline;">
+                                                        <form method="POST" style="display: inline;" class="form-responsive">
                                                             <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
                                                             <input type="hidden" name="action" value="assign_admin">
-                                                            <button type="submit" class="btn btn-sm btn-success" 
+                                                            <button type="submit" class="form-button-primary text-sm py-2 px-3" 
                                                                     onclick="return confirm('Are you sure you want to assign admin role to <?= htmlspecialchars($user['username']) ?>?')">
                                                                 Make Admin
                                                             </button>
                                                         </form>
                                                     <?php else: ?>
-                                                        <form method="POST" style="display: inline;">
+                                                        <form method="POST" style="display: inline;" class="form-responsive">
                                                             <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
                                                             <input type="hidden" name="action" value="remove_admin">
-                                                            <button type="submit" class="btn btn-sm btn-warning" 
+                                                            <button type="submit" class="form-button-secondary text-sm py-2 px-3 border-orange-300 text-orange-700 hover:bg-orange-50" 
                                                                     onclick="return confirm('Are you sure you want to remove admin role from <?= htmlspecialchars($user['username']) ?>?')">
                                                                 Remove Admin
                                                             </button>

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Responsive Grid Test - Auction Cards</title>
+    <link rel="stylesheet" href="assets/css/responsive-foundation.css">
+    <link rel="stylesheet" href="assets/css/auction-cards.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%);
+            min-height: 100vh;
+        }
+        
+        .test-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 2rem;
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .test-controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .test-button {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #3B82F6, #1E40AF);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .test-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+        }
+        
+        .viewport-info {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            z-index: 1000;
+        }
+        
+        .grid-info {
+            text-align: center;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 0.5rem;
+            backdrop-filter: blur(8px);
+        }
+    </style>
+</head>
+<body>
+    <div class="viewport-info" id="viewportInfo">
+        Viewport: <span id="viewportSize"></span>
+    </div>
+
+    <div class="test-header">
+        <h1>Enhanced Responsive Grid Test</h1>
+        <p>Test the responsive auction cards grid system (1-4 columns based on screen size)</p>
+        <div class="grid-info" id="gridInfo">
+            Current Grid: <span id="currentColumns">Loading...</span>
+        </div>
+    </div>
+
+    <div class="test-controls">
+        <button class="test-button" onclick="showSkeletonCards(8)">Show Skeleton Loading</button>
+        <button class="test-button" onclick="showActualCards()">Show Actual Cards</button>
+        <button class="test-button" onclick="toggleLoadingState()">Toggle Loading State</button>
+        <button class="test-button" onclick="testResponsiveBreakpoints()">Test Breakpoints</button>
+    </div>
+
+    <!-- Enhanced Auction Cards Grid Container -->
+    <div class="auction-cards-container-enhanced">
+        <div class="auction-cards-grid" id="auctionGrid">
+            <!-- Cards will be dynamically generated -->
+        </div>
+    </div>
+
+    <script>
+        // Sample auction data for testing
+        const sampleAuctions = [
+            {
+                id: 1,
+                title: "Vintage Camera Collection",
+                description: "Rare vintage cameras from the 1950s including Leica and Canon models in excellent condition.",
+                image: "https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?w=400&h=300&fit=crop",
+                currentBid: 1250.00,
+                endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
+                seller: "PhotoCollector"
+            },
+            {
+                id: 2,
+                title: "Antique Pocket Watch",
+                description: "18k gold pocket watch from 1890, fully functional with original chain and certificate.",
+                image: "https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=400&h=300&fit=crop",
+                currentBid: 850.00,
+                endTime: new Date(Date.now() + 5 * 60 * 60 * 1000), // 5 hours from now
+                seller: "TimeKeeper"
+            },
+            {
+                id: 3,
+                title: "Modern Art Painting",
+                description: "Contemporary abstract painting by emerging artist, oil on canvas, 24x36 inches.",
+                image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=300&fit=crop",
+                currentBid: 420.00,
+                endTime: new Date(Date.now() + 12 * 60 * 60 * 1000), // 12 hours from now
+                seller: "ArtGallery"
+            },
+            {
+                id: 4,
+                title: "Rare Book Collection",
+                description: "First edition books including classics from the 19th century, leather bound with gold lettering.",
+                image: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=300&fit=crop",
+                currentBid: 680.00,
+                endTime: new Date(Date.now() + 18 * 60 * 60 * 1000), // 18 hours from now
+                seller: "BookWorm"
+            },
+            {
+                id: 5,
+                title: "Vintage Guitar",
+                description: "1960s Fender Stratocaster in original sunburst finish, includes original case and documentation.",
+                image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop",
+                currentBid: 2100.00,
+                endTime: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes from now
+                seller: "MusicStore"
+            },
+            {
+                id: 6,
+                title: "Jewelry Set",
+                description: "Vintage diamond and emerald jewelry set including necklace, earrings, and bracelet.",
+                image: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&h=300&fit=crop",
+                currentBid: 1850.00,
+                endTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
+                seller: "JewelryExpert"
+            },
+            {
+                id: 7,
+                title: "Classic Car Model",
+                description: "Die-cast 1:18 scale model of 1967 Mustang Fastback, limited edition collector's item.",
+                image: "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=400&h=300&fit=crop",
+                currentBid: 125.00,
+                endTime: new Date(Date.now() + 6 * 60 * 60 * 1000), // 6 hours from now
+                seller: "ModelCollector"
+            },
+            {
+                id: 8,
+                title: "Antique Vase",
+                description: "Ming dynasty style porcelain vase with intricate blue and white patterns, authenticated.",
+                image: "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=400&h=300&fit=crop",
+                currentBid: 950.00,
+                endTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // 1 day from now
+                seller: "AntiqueDealer"
+            }
+        ];
+
+        let isLoading = false;
+
+        // Update viewport info
+        function updateViewportInfo() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            document.getElementById('viewportSize').textContent = `${width}x${height}`;
+            
+            // Update grid info
+            let columns = 1;
+            if (width >= 1800) columns = 5;
+            else if (width >= 1280) columns = 4;
+            else if (width >= 1024) columns = 3;
+            else if (width >= 900) columns = 3;
+            else if (width >= 640) columns = 2;
+            
+            document.getElementById('currentColumns').textContent = `${columns} columns`;
+        }
+
+        // Show skeleton loading cards
+        function showSkeletonCards(count = 8) {
+            const grid = document.getElementById('auctionGrid');
+            grid.innerHTML = '';
+            grid.className = 'auction-cards-skeleton-grid';
+
+            for (let i = 0; i < count; i++) {
+                const skeleton = document.createElement('div');
+                skeleton.className = 'auction-card-skeleton';
+                skeleton.style.animationDelay = `${i * 0.1}s`;
+                skeleton.innerHTML = `
+                    <div class="auction-card-skeleton-image"></div>
+                    <div class="auction-card-skeleton-content">
+                        <div class="auction-card-skeleton-title"></div>
+                        <div class="auction-card-skeleton-description"></div>
+                        <div class="auction-card-skeleton-description"></div>
+                        <div class="auction-card-skeleton-description"></div>
+                        <div class="auction-card-skeleton-price"></div>
+                        <div class="auction-card-skeleton-timer"></div>
+                    </div>
+                `;
+                grid.appendChild(skeleton);
+            }
+
+            // Add loading indicator
+            const container = grid.parentElement;
+            const existingIndicator = container.querySelector('.auction-cards-loading-indicator');
+            if (existingIndicator) {
+                existingIndicator.remove();
+            }
+
+            const loadingIndicator = document.createElement('div');
+            loadingIndicator.className = 'auction-cards-loading-indicator';
+            loadingIndicator.innerHTML = `
+                <div class="auction-cards-loading-spinner"></div>
+                <div class="auction-cards-loading-text">Loading auctions...</div>
+                <div class="auction-cards-loading-progress">
+                    <div class="auction-cards-loading-progress-bar"></div>
+                </div>
+            `;
+            container.appendChild(loadingIndicator);
+        }
+
+        // Show actual auction cards
+        function showActualCards() {
+            const grid = document.getElementById('auctionGrid');
+            const container = grid.parentElement;
+            
+            // Remove loading indicator
+            const loadingIndicator = container.querySelector('.auction-cards-loading-indicator');
+            if (loadingIndicator) {
+                loadingIndicator.remove();
+            }
+
+            grid.innerHTML = '';
+            grid.className = 'auction-cards-grid';
+
+            sampleAuctions.forEach((auction, index) => {
+                const card = createAuctionCard(auction, index);
+                grid.appendChild(card);
+            });
+
+            // Initialize animations
+            setTimeout(() => {
+                initializeCardAnimations();
+            }, 100);
+        }
+
+        // Create auction card element
+        function createAuctionCard(auction, index) {
+            const timeRemaining = auction.endTime - new Date();
+            let status = 'active';
+            if (timeRemaining <= 0) status = 'ended';
+            else if (timeRemaining <= 3600000) status = 'ending-soon';
+
+            const card = document.createElement('article');
+            card.className = 'auction-card';
+            card.style.animationDelay = `${index * 0.1}s`;
+            card.setAttribute('data-loading', 'true');
+
+            card.innerHTML = `
+                <a href="#" class="auction-card-link">
+                    <div class="auction-card-image">
+                        <img src="${auction.image}" alt="${auction.title}" loading="lazy">
+                        <div class="auction-card-overlay"></div>
+                        <div class="auction-card-seller">${auction.seller}</div>
+                        <div class="auction-card-status ${status}">
+                            ${status === 'ending-soon' ? 'Ending Soon' : status === 'ended' ? 'Ended' : 'Active'}
+                        </div>
+                    </div>
+                    <div class="auction-card-content">
+                        <h3 class="auction-card-title">${auction.title}</h3>
+                        <p class="auction-card-description">${auction.description}</p>
+                        <div class="auction-card-price">
+                            <div class="auction-card-price-label">Current Bid</div>
+                            <div class="auction-card-price-amount">
+                                <span>$${auction.currentBid.toFixed(2)}</span>
+                                <svg class="auction-card-price-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="auction-card-timer ${status === 'ending-soon' ? 'urgent' : status === 'ended' ? 'ended' : ''}">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <svg class="auction-card-timer-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span class="auction-card-timer-text">${formatTimeRemaining(timeRemaining)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            `;
+
+            return card;
+        }
+
+        // Format time remaining
+        function formatTimeRemaining(ms) {
+            if (ms <= 0) return 'ENDED';
+            
+            const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((ms % (1000 * 60)) / 1000);
+
+            let timeString = "";
+            if (days > 0) timeString += days + "d ";
+            if (hours > 0 || days > 0) timeString += hours + "h ";
+            timeString += minutes + "m " + seconds + "s";
+
+            return timeString;
+        }
+
+        // Initialize card animations
+        function initializeCardAnimations() {
+            const cards = document.querySelectorAll('.auction-card[data-loading="true"]');
+            cards.forEach((card, index) => {
+                setTimeout(() => {
+                    card.setAttribute('data-loaded', 'true');
+                    card.removeAttribute('data-loading');
+                }, index * 100);
+            });
+        }
+
+        // Toggle loading state
+        function toggleLoadingState() {
+            isLoading = !isLoading;
+            if (isLoading) {
+                showSkeletonCards(8);
+            } else {
+                showActualCards();
+            }
+        }
+
+        // Test responsive breakpoints
+        function testResponsiveBreakpoints() {
+            const breakpoints = [320, 640, 768, 900, 1024, 1280, 1536, 1800];
+            let currentIndex = 0;
+
+            function testNextBreakpoint() {
+                if (currentIndex >= breakpoints.length) {
+                    alert('Breakpoint test complete! Resize your browser window to see the responsive behavior.');
+                    return;
+                }
+
+                const width = breakpoints[currentIndex];
+                alert(`Testing breakpoint: ${width}px\nResize your browser window to ${width}px width to see the grid adaptation.`);
+                currentIndex++;
+                
+                setTimeout(testNextBreakpoint, 2000);
+            }
+
+            testNextBreakpoint();
+        }
+
+        // Event listeners
+        window.addEventListener('resize', updateViewportInfo);
+        window.addEventListener('load', () => {
+            updateViewportInfo();
+            showActualCards();
+        });
+
+        // Update viewport info every second for real-time feedback
+        setInterval(updateViewportInfo, 1000);
+    </script>
+</body>
+</html>

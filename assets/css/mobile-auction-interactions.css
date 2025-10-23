@@ -1,0 +1,837 @@
+/**
+ * Mobile Auction Interactions
+ * Enhanced mobile-specific interactions for auction items
+ * Implements touch-friendly bid buttons, responsive countdown timers, and swipe gestures
+ */
+
+/* ===== TOUCH-FRIENDLY BID BUTTONS ===== */
+
+/* Enhanced mobile bid button with proper 44px minimum touch target */
+.bid-button-mobile {
+  min-height: 44px;
+  min-width: 100%;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  font-weight: 700;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bid-button-mobile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 35px rgba(59, 130, 246, 0.4);
+}
+
+.bid-button-mobile:active {
+  transform: translateY(0);
+  box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3);
+}
+
+.bid-button-mobile:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  background: #9CA3AF;
+}
+
+/* Touch ripple effect for bid button */
+.bid-button-mobile::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  transform: translate(-50%, -50%);
+  transition: width 0.4s, height 0.4s;
+  pointer-events: none;
+}
+
+.bid-button-mobile:active::after {
+  width: 300px;
+  height: 300px;
+}
+
+/* Quick bid buttons with 44px minimum touch targets */
+.quick-bid-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.quick-bid-button {
+  min-height: 44px;
+  padding: 12px 16px;
+  background: #F3F4F6;
+  border: 2px solid #D1D5DB;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.quick-bid-button:hover,
+.quick-bid-button:focus {
+  background: #3B82F6;
+  border-color: #3B82F6;
+  color: white;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.quick-bid-button:active {
+  transform: scale(0.98);
+}
+
+.quick-bid-button.selected {
+  background: #3B82F6;
+  border-color: #3B82F6;
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+/* Enhanced mobile bid input with 44px minimum height */
+.bid-input-mobile {
+  min-height: 44px;
+  padding: 16px 20px;
+  border: 2px solid #D1D5DB;
+  border-radius: 16px;
+  font-size: 18px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  background: white;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.bid-input-mobile:focus {
+  outline: none;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  transform: scale(1.02);
+}
+
+/* ===== RESPONSIVE COUNTDOWN TIMERS ===== */
+
+/* Enhanced mobile countdown timer with clear formatting */
+.countdown-mobile {
+  background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%);
+  border-radius: 20px;
+  padding: 20px;
+  margin: 20px 0;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border: 1px solid #E5E7EB;
+  position: relative;
+  overflow: hidden;
+}
+
+.countdown-mobile::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(59, 130, 246, 0.1), 
+    transparent
+  );
+  transition: left 0.6s ease-in-out;
+}
+
+.countdown-mobile:hover::before {
+  left: 100%;
+}
+
+.countdown-mobile.urgent {
+  background: linear-gradient(135deg, 
+    rgba(239, 68, 68, 0.1) 0%, 
+    rgba(220, 38, 38, 0.1) 100%
+  );
+  border: 2px solid #EF4444;
+  animation: countdown-pulse 1s infinite;
+}
+
+.countdown-mobile.warning {
+  background: linear-gradient(135deg, 
+    rgba(245, 158, 11, 0.1) 0%, 
+    rgba(217, 119, 6, 0.1) 100%
+  );
+  border: 2px solid #F59E0B;
+}
+
+.countdown-mobile.ended {
+  background: linear-gradient(135deg, 
+    rgba(107, 114, 128, 0.1) 0%, 
+    rgba(75, 85, 99, 0.1) 100%
+  );
+  border: 2px solid #6B7280;
+}
+
+@keyframes countdown-pulse {
+  0%, 100% { 
+    transform: scale(1);
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.2);
+  }
+  50% { 
+    transform: scale(1.02);
+    box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+  }
+}
+
+.countdown-mobile-label {
+  font-size: 14px;
+  color: #6B7280;
+  margin-bottom: 8px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.countdown-mobile-time {
+  font-size: 28px;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1.2;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+}
+
+.countdown-mobile.urgent .countdown-mobile-time {
+  color: #EF4444;
+}
+
+.countdown-mobile.warning .countdown-mobile-time {
+  color: #F59E0B;
+}
+
+.countdown-mobile.ended .countdown-mobile-time {
+  color: #6B7280;
+}
+
+/* Mobile countdown with time segments */
+.countdown-segments {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.countdown-segment {
+  text-align: center;
+  min-width: 50px;
+}
+
+.countdown-segment-number {
+  display: block;
+  font-size: 24px;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1;
+}
+
+.countdown-segment-label {
+  display: block;
+  font-size: 12px;
+  color: #6B7280;
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ===== MOBILE PRICE DISPLAY ===== */
+
+.price-display-mobile {
+  background: linear-gradient(135deg, 
+    rgba(16, 185, 129, 0.1) 0%, 
+    rgba(5, 150, 105, 0.1) 100%
+  );
+  border: 2px solid rgba(16, 185, 129, 0.3);
+  border-radius: 20px;
+  padding: 24px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  margin: 20px 0;
+}
+
+.price-display-mobile::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(16, 185, 129, 0.2), 
+    transparent
+  );
+  transition: left 0.6s ease-in-out;
+}
+
+.price-display-mobile:hover::before {
+  left: 100%;
+}
+
+.price-display-mobile-label {
+  font-size: 14px;
+  color: #6B7280;
+  margin-bottom: 8px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.price-display-mobile-amount {
+  font-size: 36px;
+  font-weight: 800;
+  color: #10B981;
+  line-height: 1.1;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+}
+
+/* ===== SWIPE GESTURE SUPPORT ===== */
+
+/* Touch gesture area */
+.touch-gesture-area {
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-x;
+  user-select: none;
+}
+
+.touch-gesture-area.swiping {
+  transition: transform 0.1s ease-out;
+}
+
+.touch-gesture-area.swipe-left {
+  transform: translateX(-20px);
+}
+
+.touch-gesture-area.swipe-right {
+  transform: translateX(20px);
+}
+
+/* Swipe indicators */
+.swipe-indicator {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 60px;
+  height: 60px;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 1000;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.swipe-indicator.left {
+  left: 20px;
+}
+
+.swipe-indicator.right {
+  right: 20px;
+}
+
+.swipe-indicator.show {
+  opacity: 1;
+  animation: swipe-indicator-pulse 0.6s ease-out;
+}
+
+@keyframes swipe-indicator-pulse {
+  0% { 
+    transform: translateY(-50%) scale(0.8);
+    opacity: 0;
+  }
+  50% { 
+    transform: translateY(-50%) scale(1.1);
+    opacity: 1;
+  }
+  100% { 
+    transform: translateY(-50%) scale(1);
+    opacity: 1;
+  }
+}
+
+.swipe-indicator svg {
+  width: 28px;
+  height: 28px;
+}
+
+/* Swipe hint overlay */
+.swipe-hint {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 1000;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.swipe-hint.show {
+  opacity: 1;
+}
+
+/* ===== HAPTIC FEEDBACK SIMULATION ===== */
+
+.haptic-feedback {
+  animation: haptic-vibrate 0.15s ease-in-out;
+}
+
+@keyframes haptic-vibrate {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-3px); }
+  40% { transform: translateX(3px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+}
+
+/* Enhanced haptic feedback for different interaction types */
+.haptic-feedback-light {
+  animation: haptic-light 0.1s ease-in-out;
+}
+
+@keyframes haptic-light {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+.haptic-feedback-medium {
+  animation: haptic-medium 0.2s ease-in-out;
+}
+
+@keyframes haptic-medium {
+  0%, 100% { transform: translateX(0) scale(1); }
+  25% { transform: translateX(-2px) scale(1.01); }
+  75% { transform: translateX(2px) scale(1.01); }
+}
+
+.haptic-feedback-strong {
+  animation: haptic-strong 0.3s ease-in-out;
+}
+
+@keyframes haptic-strong {
+  0%, 100% { transform: translateX(0) scale(1); }
+  20% { transform: translateX(-4px) scale(1.02); }
+  40% { transform: translateX(4px) scale(1.02); }
+  60% { transform: translateX(-3px) scale(1.01); }
+  80% { transform: translateX(3px) scale(1.01); }
+}
+
+/* ===== MOBILE FORM ENHANCEMENTS ===== */
+
+.bid-form-mobile {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border: 1px solid #E5E7EB;
+  position: sticky;
+  bottom: 20px;
+  margin-top: 24px;
+  z-index: 100;
+}
+
+.bid-form-desktop {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border: 1px solid #E5E7EB;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+/* ===== MOBILE NAVIGATION FOR AUCTION BROWSING ===== */
+
+.auction-nav-mobile {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-top: 1px solid #E5E7EB;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 200;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.auction-nav-mobile-button {
+  flex: 1;
+  margin: 0 8px;
+  min-height: 44px;
+  padding: 12px 16px;
+  background: #F3F4F6;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.auction-nav-mobile-button.primary {
+  background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.auction-nav-mobile-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.auction-nav-mobile-button:active {
+  transform: translateY(0);
+}
+
+.auction-nav-mobile-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ===== RESPONSIVE BREAKPOINTS ===== */
+
+/* Hide mobile-specific elements on desktop */
+@media (min-width: 768px) {
+  .quick-bid-buttons {
+    display: none;
+  }
+  
+  .auction-nav-mobile {
+    display: none;
+  }
+  
+  .bid-form-mobile {
+    position: static;
+    margin-top: 0;
+  }
+  
+  .countdown-mobile {
+    display: inline-block;
+    max-width: 300px;
+  }
+}
+
+/* Enhanced mobile-only styles */
+@media (max-width: 767px) {
+  .bid-form-desktop {
+    display: none;
+  }
+  
+  /* Ensure proper spacing for mobile navigation */
+  body {
+    padding-bottom: 80px;
+  }
+  
+  /* Mobile-specific auction card interactions */
+  .auction-card {
+    margin-bottom: 16px;
+  }
+  
+  .auction-card:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease-out;
+  }
+}
+
+/* ===== ACCESSIBILITY ENHANCEMENTS ===== */
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .bid-button-mobile,
+  .quick-bid-button,
+  .bid-input-mobile {
+    border: 2px solid currentColor;
+  }
+  
+  .countdown-mobile,
+  .price-display-mobile {
+    border: 2px solid currentColor;
+  }
+  
+  .swipe-indicator {
+    border: 2px solid white;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .bid-button-mobile,
+  .quick-bid-button,
+  .auction-nav-mobile-button {
+    transition: none;
+    transform: none;
+  }
+  
+  .bid-button-mobile:hover,
+  .quick-bid-button:hover,
+  .auction-nav-mobile-button:hover {
+    transform: none;
+  }
+  
+  .countdown-mobile.urgent {
+    animation: none;
+  }
+  
+  .haptic-feedback,
+  .haptic-feedback-light,
+  .haptic-feedback-medium,
+  .haptic-feedback-strong {
+    animation: none;
+  }
+  
+  .swipe-indicator.show {
+    animation: none;
+  }
+}
+
+/* Focus management for keyboard navigation */
+.bid-button-mobile:focus,
+.quick-bid-button:focus,
+.bid-input-mobile:focus,
+.auction-nav-mobile-button:focus {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+/* Screen reader support */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Touch target improvements for small screens */
+@media (max-width: 480px) {
+  .quick-bid-button,
+  .bid-button-mobile,
+  .auction-nav-mobile-button {
+    min-height: 48px; /* Larger touch targets for very small screens */
+  }
+  
+  .bid-input-mobile {
+    min-height: 48px;
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+}
+/* ==
+=== MOBILE DEVICE SPECIFIC ENHANCEMENTS ===== */
+
+/* Mobile device body class for enhanced styling */
+body.mobile-device {
+  padding-bottom: 100px; /* Space for mobile navigation */
+  overflow-x: hidden;
+}
+
+/* Enhanced loading states for mobile */
+.bid-button-mobile .animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Mobile-specific form validation styles */
+.bid-input-mobile[aria-invalid="true"] {
+  border-color: #EF4444;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+}
+
+.bid-input-mobile[aria-invalid="false"] {
+  border-color: #10B981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+}
+
+/* Enhanced mobile card interactions */
+@media (max-width: 767px) {
+  .auction-card {
+    transition: transform 0.1s ease-out;
+  }
+  
+  .auction-card:active {
+    transform: scale(0.98);
+  }
+  
+  /* Mobile-specific spacing adjustments */
+  .max-w-6xl {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  
+  /* Enhanced mobile typography */
+  h1 {
+    font-size: 28px;
+    line-height: 1.2;
+  }
+  
+  /* Mobile-specific button spacing */
+  .space-y-4 > * + * {
+    margin-top: 20px;
+  }
+}
+
+/* ===== PERFORMANCE OPTIMIZATIONS FOR MOBILE ===== */
+
+/* Hardware acceleration for smooth animations */
+.bid-button-mobile,
+.quick-bid-button,
+.countdown-mobile,
+.price-display-mobile,
+.swipe-indicator,
+.auction-nav-mobile {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Optimize touch interactions */
+.touch-gesture-area {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Prevent text selection during swipe */
+.touch-gesture-area * {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* ===== DARK MODE SUPPORT ===== */
+
+@media (prefers-color-scheme: dark) {
+  .countdown-mobile,
+  .price-display-mobile,
+  .bid-form-mobile {
+    background: #1F2937;
+    border-color: #374151;
+    color: #F9FAFB;
+  }
+  
+  .countdown-mobile-label,
+  .price-display-mobile-label {
+    color: #9CA3AF;
+  }
+  
+  .countdown-mobile-time,
+  .price-display-mobile-amount {
+    color: #F9FAFB;
+  }
+  
+  .bid-input-mobile {
+    background: #374151;
+    border-color: #4B5563;
+    color: #F9FAFB;
+  }
+  
+  .quick-bid-button {
+    background: #374151;
+    border-color: #4B5563;
+    color: #F9FAFB;
+  }
+  
+  .auction-nav-mobile {
+    background: #1F2937;
+    border-color: #374151;
+  }
+  
+  .auction-nav-mobile-button {
+    background: #374151;
+    color: #F9FAFB;
+  }
+}
+
+/* ===== PRINT STYLES ===== */
+
+@media print {
+  .auction-nav-mobile,
+  .quick-bid-buttons,
+  .bid-form-mobile,
+  .swipe-indicator,
+  .swipe-hint {
+    display: none !important;
+  }
+  
+  .countdown-mobile {
+    background: white;
+    border: 1px solid #000;
+  }
+}

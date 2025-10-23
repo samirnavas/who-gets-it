@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Forms Test - College Auction</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="assets/css/responsive-foundation.css">
+    <link rel="stylesheet" href="assets/css/responsive-forms.css">
+</head>
+<body class="bg-gray-100 min-h-screen py-8">
+    <div class="container-responsive">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="heading-responsive-1 text-center mb-8">Responsive Form Components Test</h1>
+            
+            <!-- Form Examples Grid -->
+            <div class="grid-responsive cols-md-2 cols-lg-2">
+                
+                <!-- Floating Labels Form -->
+                <div class="form-card">
+                    <h2 class="heading-responsive-2 mb-6">Floating Labels Form</h2>
+                    <form class="form-responsive" data-validate>
+                        <div class="form-field-floating">
+                            <input type="text" id="floating-name" name="name" class="form-input" placeholder=" " required>
+                            <label for="floating-name" class="form-label-floating">Full Name</label>
+                        </div>
+                        
+                        <div class="form-field-floating">
+                            <input type="email" id="floating-email" name="email" class="form-input" placeholder=" " required>
+                            <label for="floating-email" class="form-label-floating">Email Address</label>
+                        </div>
+                        
+                        <div class="form-field-floating">
+                            <input type="password" id="floating-password" name="password" class="form-input" placeholder=" " required minlength="8" data-strength>
+                            <label for="floating-password" class="form-label-floating">Password</label>
+                        </div>
+                        
+                        <div class="form-button-group">
+                            <button type="submit" class="form-button-primary">Submit</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Traditional Labels Form -->
+                <div class="form-card">
+                    <h2 class="heading-responsive-2 mb-6">Traditional Labels Form</h2>
+                    <form class="form-responsive" data-validate>
+                        <div class="form-field">
+                            <label for="traditional-name" class="form-label form-label-required">Full Name</label>
+                            <input type="text" id="traditional-name" name="name" class="form-input" required>
+                        </div>
+                        
+                        <div class="form-field">
+                            <label for="traditional-email" class="form-label form-label-required">Email Address</label>
+                            <input type="email" id="traditional-email" name="email" class="form-input" required>
+                            <div class="form-help-text">We'll never share your email with anyone else.</div>
+                        </div>
+                        
+                        <div class="form-field">
+                            <label for="traditional-message" class="form-label form-label-optional">Message</label>
+                            <textarea id="traditional-message" name="message" class="form-textarea" rows="4" maxlength="500" placeholder="Enter your message here..."></textarea>
+                        </div>
+                        
+                        <div class="form-button-group">
+                            <button type="submit" class="form-button-primary">Send Message</button>
+                            <button type="reset" class="form-button-secondary">Clear Form</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Form with Validation States -->
+                <div class="form-card">
+                    <h2 class="heading-responsive-2 mb-6">Validation States Demo</h2>
+                    <form class="form-responsive">
+                        <div class="form-field has-success">
+                            <label for="success-field" class="form-label">Success State</label>
+                            <input type="text" id="success-field" name="success" class="form-input" value="Valid input">
+                            <div class="form-validation-message form-validation-success">This field is valid!</div>
+                        </div>
+                        
+                        <div class="form-field has-error">
+                            <label for="error-field" class="form-label">Error State</label>
+                            <input type="text" id="error-field" name="error" class="form-input" value="Invalid input">
+                            <div class="form-validation-message form-validation-error">This field has an error.</div>
+                        </div>
+                        
+                        <div class="form-field has-warning">
+                            <label for="warning-field" class="form-label">Warning State</label>
+                            <input type="text" id="warning-field" name="warning" class="form-input" value="Warning input">
+                            <div class="form-validation-message form-validation-warning">This field has a warning.</div>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Advanced Form Elements -->
+                <div class="form-card">
+                    <h2 class="heading-responsive-2 mb-6">Advanced Elements</h2>
+                    <form class="form-responsive" data-validate>
+                        <div class="form-field">
+                            <label for="select-field" class="form-label form-label-required">Select Option</label>
+                            <select id="select-field" name="option" class="form-select" required>
+                                <option value="">Choose an option...</option>
+                                <option value="option1">Option 1</option>
+                                <option value="option2">Option 2</option>
+                                <option value="option3">Option 3</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-field">
+                            <div class="form-checkbox-container">
+                                <input type="checkbox" id="checkbox-field" name="agree" class="form-checkbox" required>
+                                <label for="checkbox-field" class="form-checkbox-label">I agree to the terms and conditions</label>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-field">
+                                <label for="date-field" class="form-label">Date</label>
+                                <input type="date" id="date-field" name="date" class="form-input">
+                            </div>
+                            
+                            <div class="form-field">
+                                <label for="time-field" class="form-label">Time</label>
+                                <input type="time" id="time-field" name="time" class="form-input">
+                            </div>
+                        </div>
+                        
+                        <div class="form-button-group">
+                            <button type="submit" class="form-button-primary">Submit Form</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Mobile Form Example -->
+            <div class="form-card mt-8">
+                <h2 class="heading-responsive-2 mb-6">Mobile-Optimized Form</h2>
+                <p class="text-responsive-base text-gray-600 mb-6">
+                    This form demonstrates mobile-first responsive design with touch-friendly targets and enhanced accessibility.
+                </p>
+                
+                <form class="form-responsive" data-validate>
+                    <div class="form-section">
+                        <h3 class="form-section-title">Personal Information</h3>
+                        <div class="form-section-description">Please provide your basic information below.</div>
+                        
+                        <div class="form-row">
+                            <div class="form-field-floating">
+                                <input type="text" id="mobile-first-name" name="first_name" class="form-input" placeholder=" " required>
+                                <label for="mobile-first-name" class="form-label-floating">First Name</label>
+                            </div>
+                            
+                            <div class="form-field-floating">
+                                <input type="text" id="mobile-last-name" name="last_name" class="form-input" placeholder=" " required>
+                                <label for="mobile-last-name" class="form-label-floating">Last Name</label>
+                            </div>
+                        </div>
+                        
+                        <div class="form-field-floating">
+                            <input type="tel" id="mobile-phone" name="phone" class="form-input" placeholder=" " pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}">
+                            <label for="mobile-phone" class="form-label-floating">Phone Number</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <h3 class="form-section-title">Account Setup</h3>
+                        
+                        <div class="form-field-floating">
+                            <input type="email" id="mobile-email" name="email" class="form-input" placeholder=" " required>
+                            <label for="mobile-email" class="form-label-floating">Email Address</label>
+                        </div>
+                        
+                        <div class="form-field-floating">
+                            <input type="password" id="mobile-password" name="password" class="form-input" placeholder=" " required minlength="8" data-strength>
+                            <label for="mobile-password" class="form-label-floating">Create Password</label>
+                        </div>
+                        
+                        <div class="form-field-floating">
+                            <input type="password" id="mobile-confirm" name="confirm_password" class="form-input" placeholder=" " required data-confirm="password">
+                            <label for="mobile-confirm" class="form-label-floating">Confirm Password</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-button-group">
+                        <button type="submit" class="form-button-primary">Create Account</button>
+                        <button type="button" class="form-button-secondary">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script src="assets/js/form-validation.js"></script>
+</body>
+</html>
