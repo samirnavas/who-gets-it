@@ -1,78 +1,36 @@
-# College Auction Website
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-A simple auction website built with PHP, MySQL, and Tailwind CSS for a college project.
+## Getting Started
 
-## Setup Instructions
+First, run the development server:
 
-### Prerequisites
-- XAMPP (Apache, PHP 8+, MySQL/MariaDB)
-- Web browser
-
-### Database Setup
-
-1. **Start XAMPP services:**
-   - Start Apache and MySQL from XAMPP Control Panel
-
-2. **Create the database:**
-   - Option A: Run the setup script
-     ```bash
-     php setup_database.php
-     ```
-   
-   - Option B: Manual setup via phpMyAdmin
-     - Open http://localhost/phpmyadmin
-     - Create a new database named `college_auction`
-     - Import the SQL file: `sql/database_schema.sql`
-
-3. **Test the connection:**
-   ```bash
-   php test_connection.php
-   ```
-
-### Database Configuration
-
-The database connection settings are in `config/db_connect.php`:
-- Host: localhost
-- Database: college_auction
-- Username: root
-- Password: (empty by default)
-
-Modify these settings if your XAMPP configuration is different.
-
-### Project Structure
-
-```
-/auction-website/
-├── config/
-│   └── db_connect.php          # Database connection
-├── sql/
-│   └── database_schema.sql     # Database schema
-├── setup_database.php          # Database setup script
-├── test_connection.php         # Connection test script
-└── README.md                   # This file
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-### Database Schema
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-The system uses three main tables:
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-- **users**: User accounts with authentication
-- **items**: Auction items with bidding information
-- **bids**: Bid history for all items
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-All tables include proper foreign key constraints and indexes for performance.
+## Learn More
 
-### Security Features
+To learn more about Next.js, take a look at the following resources:
 
-- PDO prepared statements for SQL injection prevention
-- Password hashing using PHP's password_hash()
-- Error handling with user-friendly messages
-- Input sanitization (to be implemented in forms)
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-### Next Steps
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-After database setup, you can proceed with implementing:
-1. User authentication system
-2. Item creation and display
-3. Bidding functionality
-4. Frontend with Tailwind CSS
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

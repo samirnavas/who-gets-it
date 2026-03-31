@@ -1,0 +1,217 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id              Int              @id @default(autoincrement())
+  username        String           @unique @db.VarChar(50)
+  passwordHash    String           @map("password_hash") @db.VarChar(255)
+  role            Role             @default(user)
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamp
+
+  // Relations
+  items           Item[]           @relation("ItemOwner")
+  highestBids     Item[]           @relation("HighestBidder")
+  itemsEnded      Item[]           @relation("ItemEndedBy")
+  
+  bids            Bid[]            @relation("BidUser")
+  bidsStopped     Bid[]            @relation("BidStoppedBy")
+
+  adminActions    AdminAction[]    @relation("AdminActionUser")
+  securityEvents  SecurityEvent[]  @relation("SecurityEventUser")
+  sessions        UserSession[]    @relation("UserSessionUser")
+  notifications   Notification[]   @relation("UserNotification")
+
+  @@index([role])
+  @@map("users")
+}
+
+enum Role {
+  user
+  admin
+}
+
+model Item {
+  id                 Int         @id @default(autoincrement())
+  userId             Int         @map("user_id")
+  title              String      @db.VarChar(255)
+  description        String?     @db.Text
+  imageUrl           String?     @default("https://via.placeholder.com/300x200?text=No+Image") @map("image_url") @db.VarChar(500)
+  startingBid        Decimal     @map("starting_bid") @db.Decimal(10,2)
+  currentBid         Decimal     @map("current_bid") @db.Decimal(10,2)
+  highestBidderId    Int?        @map("highest_bidder_id")
+  endTime            DateTime    @map("end_time") @db.DateTime
+  status             ItemStatus  @default(active)
+  endedAt            DateTime?   @map("ended_at") @db.Timestamp
+  endedById          Int?        @map("ended_by")
+  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamp
+
+  // Relations
+  owner              User        @relation("ItemOwner", fields: [userId], references: [id], onDelete: Cascade)
+  highestBidder      User?       @relation("HighestBidder", fields: [highestBidderId], references: [id], onDelete: SetNull)
+  endedBy            User?       @relation("ItemEndedBy", fields: [endedById], references: [id], onDelete: SetNull)
+  bids               Bid[]       @relation("BidItem")
+
+  // Indexes
+  @@index([endTime])
+  @@index([userId])
+  @@index([status])
+  @@index([status, endTime])
+  @@index([userId, status])
+  @@index([endedById])
+  @@index([title])
+  @@map("items")
+}
+
+enum ItemStatus {
+  active
+  ended
+  cancelled
+}
+
+model Bid {
+  id          Int        @id @default(autoincrement())
+  itemId      Int        @map("item_id")
+  userId      Int        @map("user_id")
+  bidAmount   Decimal    @map("bid_amount") @db.Decimal(10,2)
+  status      BidStatus  @default(active)
+  stoppedAt   DateTime?  @map("stopped_at") @db.Timestamp
+  stoppedById Int?       @map("stopped_by")
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamp
+
+  // Relations
+  item        Item       @relation("BidItem", fields: [itemId], references: [id], onDelete: Cascade)
+  user        User       @relation("BidUser", fields: [userId], references: [id], onDelete: Cascade)
+  stoppedBy   User?      @relation("BidStoppedBy", fields: [stoppedById], references: [id], onDelete: SetNull)
+
+  // Indexes
+  @@index([itemId])
+  @@index([userId])
+  @@index([status])
+  @@index([status, createdAt])
+  @@index([itemId, status])
+  @@index([userId, status])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([itemId, createdAt(sort: Desc)])
+  @@index([itemId, bidAmount(sort: Desc), status])
+  @@map("bids")
+}
+
+enum BidStatus {
+  active
+  stopped
+}
+
+model Notification {
+  id          Int               @id @default(autoincrement())
+  userId      Int               @map("user_id")
+  type        NotificationType
+  title       String            @db.VarChar(255)
+  message     String            @db.Text
+  relatedId   Int?              @map("related_id")
+  isRead      Boolean           @default(false) @map("is_read")
+  readAt      DateTime?         @map("read_at") @db.Timestamp
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamp
+
+  user        User              @relation("UserNotification", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  bid_stopped
+  auction_won
+  auction_lost
+  outbid
+  admin_action
+  auction_ended
+}
+
+model AdminAction {
+  id              Int              @id @default(autoincrement())
+  adminId         Int              @map("admin_id")
+  actionType      AdminActionType  @map("action_type")
+  targetId        Int              @map("target_id")
+  reason          String?          @db.Text
+  additionalData  Json?            @map("additional_data")
+  ipAddress       String?          @map("ip_address") @db.VarChar(45)
+  userAgent       String?          @map("user_agent") @db.Text
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamp
+
+  admin           User             @relation("AdminActionUser", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([actionType])
+  @@index([createdAt])
+  @@index([targetId, actionType])
+  @@index([adminId, createdAt])
+  @@map("admin_actions")
+}
+
+enum AdminActionType {
+  stop_bid
+  end_auction
+  cancel_auction
+  assign_admin
+  remove_admin
+  bulk_stop_bids
+  auto_end_expired
+}
+
+model SecurityEvent {
+  id          Int       @id @default(autoincrement())
+  eventType   String    @map("event_type") @db.VarChar(50)
+  description String    @db.Text
+  userId      Int?      @map("user_id")
+  ipAddress   String?   @map("ip_address") @db.VarChar(45)
+  userAgent   String?   @map("user_agent") @db.Text
+  contextData Json?     @map("context_data")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp
+
+  user        User?     @relation("SecurityEventUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([eventType])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([ipAddress])
+  @@map("security_events")
+}
+
+model UserSession {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @map("user_id")
+  sessionId    String   @map("session_id") @db.VarChar(128)
+  ipAddress    String   @map("ip_address") @db.VarChar(45)
+  userAgent    String?  @map("user_agent") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamp
+  lastActivity DateTime @default(now()) @updatedAt @map("last_activity") @db.Timestamp
+  isActive     Boolean  @default(true) @map("is_active")
+
+  user         User     @relation("UserSessionUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([isActive])
+  @@index([lastActivity])
+  @@map("user_sessions")
+}
+
+model FailedLoginAttempt {
+  id          Int      @id @default(autoincrement())
+  username    String?  @db.VarChar(50)
+  ipAddress   String   @map("ip_address") @db.VarChar(45)
+  userAgent   String?  @map("user_agent") @db.Text
+  attemptedAt DateTime @default(now()) @map("attempted_at") @db.Timestamp
+
+  @@index([username])
+  @@index([ipAddress])
+  @@index([attemptedAt])
+  @@map("failed_login_attempts")
+}
