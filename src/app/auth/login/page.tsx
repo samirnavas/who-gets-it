@@ -28,7 +28,7 @@ export default function LoginPage() {
       setError("Invalid username or password");
       setLoading(false);
     } else {
-      router.push("/");
+      router.push("/profile");
       router.refresh();
     }
   };

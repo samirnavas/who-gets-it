@@ -6,9 +6,10 @@ import { ChevronRight, Home, LayoutList, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
 // Server Component fetching the initial Auction data
-export default async function AuctionPage({ params }: { params: { id: string } }) {
+export default async function AuctionPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const item = await prisma.item.findUnique({
-    where: { id: parseInt(params.id) },
+    where: { id: parseInt(id) },
     include: {
       owner: { select: { username: true } },
       highestBidder: { select: { username: true } },
