@@ -1,10 +1,11 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
-import { User, Calendar, Plus, Package } from "lucide-react";
+import db from "@/lib/db";
+import { User, Calendar, Plus, Package, TrendingUp, Clock } from "lucide-react";
 import Link from "next/link";
 import LogoutButton from "./LogoutButton";
+import { RowDataPacket } from "mysql2";
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
@@ -13,114 +14,231 @@ export default async function ProfilePage() {
     redirect("/auth/login");
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: parseInt((session.user as any).id) },
-    include: {
-      bids: {
-        include: { item: true },
-        orderBy: { createdAt: "desc" },
-      },
-      items: {
-        orderBy: { createdAt: "desc" },
-      }
-    },
-  });
+  const userId = parseInt((session.user as any).id);
 
-  if (!user) {
+  const [userRows] = await db.query<RowDataPacket[]>(
+    "SELECT * FROM users WHERE id = ?",
+    [userId]
+  );
+  const userBase = userRows[0];
+
+  if (!userBase) {
     redirect("/auth/login");
   }
+
+  const [bidRows] = await db.query<RowDataPacket[]>(
+    `SELECT b.*, i.title, i.end_time, i.status as item_status 
+     FROM bids b 
+     JOIN items i ON b.item_id = i.id 
+     WHERE b.user_id = ? 
+     ORDER BY b.created_at DESC`,
+    [userId]
+  );
+
+  const [itemRows] = await db.query<RowDataPacket[]>(
+    "SELECT * FROM items WHERE user_id = ? ORDER BY created_at DESC",
+    [userId]
+  );
+
+  const user = {
+    username: userBase.username as string,
+    role: userBase.role as string,
+    createdAt: userBase.created_at,
+    bids: bidRows.map(b => ({
+      id: b.id,
+      bidAmount: b.bid_amount,
+      item: { id: b.item_id, title: b.title, status: b.item_status, endTime: b.end_time }
+    })),
+    items: itemRows.map(i => ({
+      currentBid: i.current_bid,
+      status: i.status as string,
+      title: i.title as string,
+      id: i.id
+    }))
+  };
 
   const activeBids = user.bids.filter((b: any) => b.item.status === 'active');
   const pastBids = user.bids.filter((b: any) => b.item.status !== 'active');
   const myItems = user.items;
 
   return (
-    <div className="max-w-4xl mx-auto py-8 flex flex-col gap-8 px-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-extrabold text-slate-900">Your Account</h1>
-        <div className="flex items-center gap-4">
-          <Link 
-            href="/auction/create" 
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-bold transition shadow-sm"
-          >
+    <div className="max-w-4xl mx-auto py-4 flex flex-col gap-6 animate-fade-in-up">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+          Account
+        </h1>
+        <div className="flex items-center gap-3">
+          <Link href="/auction/create" className="btn btn-primary text-sm">
             <Plus className="h-4 w-4" />
-            Put Item to Bid
+            New Auction
           </Link>
           <LogoutButton />
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 flex flex-col gap-6">
-        <div className="flex items-center gap-6 pb-6 border-b border-slate-100">
-          <div className="h-24 w-24 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600">
-            <User className="h-10 w-10" />
+      {/* Profile Card */}
+      <div className="card p-6 flex flex-col gap-6">
+        {/* User info */}
+        <div
+          className="flex items-center gap-4 pb-5"
+          style={{ borderBottom: "1px solid var(--border)" }}
+        >
+          <div
+            className="h-16 w-16 rounded-full flex items-center justify-center shrink-0"
+            style={{ backgroundColor: "rgba(91, 106, 191, 0.1)", color: "var(--color-primary)" }}
+          >
+            <User className="h-7 w-7" />
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900">@{user.username}</h2>
-            <div className="flex items-center gap-4 mt-2 text-sm text-slate-500 font-medium">
-              <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4" /> Joined {new Date(user.createdAt).toLocaleDateString()}</span>
-              <span className="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-md uppercase tracking-wide text-xs">{user.role}</span>
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold truncate" style={{ color: "var(--text-primary)" }}>
+              @{user.username}
+            </h2>
+            <div className="flex flex-wrap items-center gap-3 mt-1.5">
+              <span
+                className="flex items-center gap-1.5 text-xs font-medium"
+                style={{ color: "var(--text-muted)" }}
+              >
+                <Calendar className="h-3.5 w-3.5" />
+                Joined {new Date(user.createdAt).toLocaleDateString()}
+              </span>
+              <span className="badge badge-active">{user.role}</span>
             </div>
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 mt-2">
-          {/* Currently Bidding */}
+        {/* Stats Row */}
+        <div className="stats-panel">
           <div>
-            <h3 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-green-500"></span>
-              Currently Bidding
+            <span className="text-xl font-bold block" style={{ color: "var(--text-primary)" }}>
+              {activeBids.length}
+            </span>
+            <span className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Active Bids</span>
+          </div>
+          <div>
+            <span className="text-xl font-bold block" style={{ color: "var(--text-primary)" }}>
+              {pastBids.length}
+            </span>
+            <span className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Past Bids</span>
+          </div>
+          <div>
+            <span className="text-xl font-bold block" style={{ color: "var(--text-primary)" }}>
+              {myItems.length}
+            </span>
+            <span className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Listed Items</span>
+          </div>
+        </div>
+
+        {/* Bids Sections */}
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Active Bids */}
+          <div>
+            <h3
+              className="text-sm font-semibold uppercase tracking-wider mb-3 flex items-center gap-2"
+              style={{ color: "var(--text-muted)" }}
+            >
+              <TrendingUp className="h-3.5 w-3.5" style={{ color: "var(--color-success)" }} />
+              Active Bids
             </h3>
-            
+
             {activeBids.length === 0 ? (
-              <div className="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                <p className="text-slate-500 font-medium text-sm">No active bids.</p>
-                <Link href="/" className="text-indigo-600 font-bold hover:underline mt-2 inline-block text-sm">Explore Auctions</Link>
+              <div
+                className="py-8 text-center rounded-xl"
+                style={{ backgroundColor: "var(--bg-secondary)", border: "1.5px dashed var(--border)" }}
+              >
+                <p className="text-xs font-medium mb-1" style={{ color: "var(--text-muted)" }}>
+                  No active bids yet.
+                </p>
+                <Link
+                  href="/"
+                  className="text-xs font-semibold hover:underline"
+                  style={{ color: "var(--color-primary)" }}
+                >
+                  Browse auctions
+                </Link>
               </div>
             ) : (
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2">
                 {activeBids.slice(0, 5).map((bid: any) => (
-                  <div key={bid.id} className="flex items-center justify-between p-4 rounded-2xl border border-slate-100 hover:border-indigo-100 hover:bg-indigo-50/50 transition bg-white">
-                    <div className="flex flex-col truncate pr-4">
-                      <Link href={`/auction/${bid.item.id}`} className="font-bold text-slate-900 hover:text-indigo-600 transition truncate">
+                  <Link
+                    key={bid.id}
+                    href={`/auction/${bid.item.id}`}
+                    className="flex items-center justify-between p-3 rounded-xl transition-colors bg-[var(--bg-card)] border border-[var(--border)] hover:border-[var(--border-focus)] hover:bg-[rgba(91,106,191,0.04)]"
+                  >
+                    <div className="flex flex-col min-w-0 pr-3">
+                      <span
+                        className="text-sm font-semibold truncate"
+                        style={{ color: "var(--text-primary)" }}
+                      >
                         {bid.item.title}
-                      </Link>
-                      <span className="text-xs text-slate-500 font-medium mt-1">Ends: {new Date(bid.item.endTime).toLocaleDateString()}</span>
+                      </span>
+                      <span className="text-xs mt-0.5 flex items-center gap-1" style={{ color: "var(--text-muted)" }}>
+                        <Clock className="h-3 w-3" />
+                        Ends {new Date(bid.item.endTime).toLocaleDateString()}
+                      </span>
                     </div>
-                    <div className="flex flex-col items-end shrink-0">
-                      <span className="font-black text-lg text-slate-900">${bid.bidAmount.toString()}</span>
-                    </div>
-                  </div>
+                    <span
+                      className="text-sm font-bold shrink-0"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      ${bid.bidAmount.toString()}
+                    </span>
+                  </Link>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Recently Bidded */}
+          {/* Past Bids */}
           <div>
-            <h3 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-slate-400"></span>
-              Recently Bidded (Past)
+            <h3
+              className="text-sm font-semibold uppercase tracking-wider mb-3 flex items-center gap-2"
+              style={{ color: "var(--text-muted)" }}
+            >
+              <Clock className="h-3.5 w-3.5" />
+              Past Bids
             </h3>
-            
+
             {pastBids.length === 0 ? (
-              <div className="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                <p className="text-slate-500 font-medium text-sm">No past bids.</p>
+              <div
+                className="py-8 text-center rounded-xl"
+                style={{ backgroundColor: "var(--bg-secondary)", border: "1.5px dashed var(--border)" }}
+              >
+                <p className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
+                  No past bids.
+                </p>
               </div>
             ) : (
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2">
                 {pastBids.slice(0, 5).map((bid: any) => (
-                  <div key={bid.id} className="flex items-center justify-between p-4 rounded-2xl border border-slate-100 bg-slate-50">
-                    <div className="flex flex-col truncate pr-4 opacity-75">
-                      <Link href={`/auction/${bid.item.id}`} className="font-bold text-slate-700 hover:text-indigo-600 transition truncate">
+                  <Link
+                    key={bid.id}
+                    href={`/auction/${bid.item.id}`}
+                    className="flex items-center justify-between p-3 rounded-xl"
+                    style={{
+                      backgroundColor: "var(--bg-secondary)",
+                      border: "1px solid var(--border)",
+                      opacity: 0.75,
+                    }}
+                  >
+                    <div className="flex flex-col min-w-0 pr-3">
+                      <span
+                        className="text-sm font-medium truncate"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
                         {bid.item.title}
-                      </Link>
-                      <span className="text-xs text-slate-500 mt-1">{bid.item.status.toUpperCase()}</span>
+                      </span>
+                      <span className="badge badge-ended text-[10px] mt-1 w-fit">
+                        {bid.item.status.toUpperCase()}
+                      </span>
                     </div>
-                    <div className="flex flex-col items-end shrink-0 opacity-75">
-                      <span className="font-bold text-slate-700">${bid.bidAmount.toString()}</span>
-                    </div>
-                  </div>
+                    <span
+                      className="text-sm font-semibold shrink-0"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      ${bid.bidAmount.toString()}
+                    </span>
+                  </Link>
                 ))}
               </div>
             )}
@@ -128,42 +246,58 @@ export default async function ProfilePage() {
         </div>
 
         {/* My Listed Items */}
-        <div className="mt-8 pt-8 border-t border-slate-100">
-          <h3 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <Package className="h-5 w-5 text-indigo-500" />
-            My Listed Auctions
+        <div style={{ borderTop: "1px solid var(--border)", paddingTop: "1.5rem" }}>
+          <h3
+            className="text-sm font-semibold uppercase tracking-wider mb-3 flex items-center gap-2"
+            style={{ color: "var(--text-muted)" }}
+          >
+            <Package className="h-3.5 w-3.5" style={{ color: "var(--color-primary)" }} />
+            My Auctions
           </h3>
-          
+
           {myItems.length === 0 ? (
-            <div className="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-              <p className="text-slate-500 font-medium">You haven't listed any items.</p>
-              <Link href="/auction/create" className="text-indigo-600 font-bold hover:underline mt-2 inline-block">Put an Item to Bid</Link>
+            <div
+              className="py-8 text-center rounded-xl"
+              style={{ backgroundColor: "var(--bg-secondary)", border: "1.5px dashed var(--border)" }}
+            >
+              <p className="text-xs font-medium mb-1" style={{ color: "var(--text-muted)" }}>
+                You haven&apos;t listed any items.
+              </p>
+              <Link
+                href="/auction/create"
+                className="text-xs font-semibold hover:underline"
+                style={{ color: "var(--color-primary)" }}
+              >
+                Create your first auction
+              </Link>
             </div>
           ) : (
-            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {myItems.map((item: any) => (
-                <div key={item.id} className="p-4 rounded-2xl border border-slate-100 hover:border-indigo-100 transition bg-white flex flex-col justify-between">
-                  <div>
-                     <Link href={`/auction/${item.id}`} className="font-bold text-slate-900 hover:text-indigo-600 transition line-clamp-1 mb-1">
-                        {item.title}
-                     </Link>
-                     <div className="flex items-center justify-between mt-2">
-                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
-                         item.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
-                       }`}>
-                         {item.status}
-                       </span>
-                       <span className="text-xs font-semibold text-slate-500">
-                         Current bid: <span className="text-slate-900">${item.currentBid.toString()}</span>
-                       </span>
-                     </div>
+                <Link
+                  key={item.id}
+                  href={`/auction/${item.id}`}
+                  className="card card-hover p-4 flex flex-col gap-2.5 block"
+                >
+                  <span
+                    className="text-sm font-semibold truncate"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    {item.title}
+                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className={`badge ${item.status === 'active' ? 'badge-active' : 'badge-ended'}`}>
+                      {item.status}
+                    </span>
+                    <span className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
+                      ${item.currentBid.toString()}
+                    </span>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
         </div>
-
       </div>
     </div>
   );

@@ -1,7 +1,8 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { prisma } from "@/lib/prisma";
+import db from "@/lib/db";
 import bcrypt from "bcryptjs";
+import { RowDataPacket } from "mysql2";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -16,15 +17,18 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const user = await prisma.user.findUnique({
-          where: { username: credentials.username },
-        });
+        const [rows] = await db.query<RowDataPacket[]>(
+          "SELECT * FROM users WHERE username = ?",
+          [credentials.username]
+        );
+
+        const user = rows[0];
 
         if (!user) {
           return null;
         }
 
-        const isValidPassword = await bcrypt.compare(credentials.password, user.passwordHash);
+        const isValidPassword = await bcrypt.compare(credentials.password, user.password_hash);
 
         if (!isValidPassword) {
           return null;

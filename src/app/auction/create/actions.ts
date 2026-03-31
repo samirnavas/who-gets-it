@@ -1,9 +1,10 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import db from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
+import { ResultSetHeader } from "mysql2";
 
 export async function createAuction(formData: FormData) {
   const session = await getServerSession(authOptions);
@@ -27,18 +28,15 @@ export async function createAuction(formData: FormData) {
   const endTime = new Date();
   endTime.setHours(endTime.getHours() + durationHours);
 
-  const item = await prisma.item.create({
-    data: {
-      userId,
-      title,
-      description,
-      imageUrl,
-      startingBid,
-      currentBid: startingBid,
-      endTime,
-      status: "active",
-    },
-  });
+  // Format endTime for MySQL (YYYY-MM-DD HH:MM:SS)
+  const mysqlEndTime = endTime.toISOString().slice(0, 19).replace('T', ' ');
 
-  redirect(`/auction/${item.id}`);
+  const [result] = await db.query<ResultSetHeader>(
+    `INSERT INTO items 
+     (user_id, title, description, image_url, starting_bid, current_bid, end_time, status) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, 'active')`,
+    [userId, title, description, imageUrl, startingBid, startingBid, mysqlEndTime]
+  );
+
+  redirect(`/auction/${result.insertId}`);
 }

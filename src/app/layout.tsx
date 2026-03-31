@@ -4,11 +4,14 @@ import "./globals.css";
 import { Navbar } from "@/components/Navbar";
 import { Providers } from "@/components/Providers";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "Who Gets It | Modern Real-time Auctions",
-  description: "Bid on your favorite items in real-time. Secure, fast, and exciting auctions.",
+  title: "BidSphere — Real-time Auctions",
+  description: "A modern auction platform. Bid on items in real-time with a clean, intuitive experience.",
 };
 
 export default function RootLayout({
@@ -18,16 +21,36 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="scroll-smooth">
-      <body className={`${inter.className} min-h-screen bg-slate-50 text-slate-900 flex flex-col`}>
+      <body
+        className={`${inter.className} min-h-screen flex flex-col`}
+        style={{ backgroundColor: "var(--bg-primary)", color: "var(--text-primary)" }}
+      >
         <Providers>
           <Navbar />
-          <main className="flex-grow container mx-auto px-4 py-8">
+          <main className="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
             {children}
           </main>
-          <footer className="border-t border-slate-200 bg-white py-8 mt-12">
-            <div className="container mx-auto px-4 text-center text-slate-600">
-              <p className="font-medium text-lg text-indigo-600 mb-2">Who Gets It</p>
-              <p>&copy; {new Date().getFullYear()} Modern Bidding Platform. All rights reserved.</p>
+          <footer
+            className="mt-auto border-t"
+            style={{ borderColor: "var(--border)", backgroundColor: "var(--bg-card)" }}
+          >
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="h-7 w-7 rounded-lg flex items-center justify-center text-xs font-black"
+                    style={{ backgroundColor: "var(--color-primary)", color: "var(--text-inverse)" }}
+                  >
+                    B
+                  </div>
+                  <span className="font-bold text-sm" style={{ color: "var(--text-primary)" }}>
+                    BidSphere
+                  </span>
+                </div>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                  &copy; {new Date().getFullYear()} BidSphere. All rights reserved.
+                </p>
+              </div>
             </div>
           </footer>
         </Providers>

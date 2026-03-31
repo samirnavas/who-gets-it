@@ -1,104 +1,183 @@
-import { prisma } from "@/lib/prisma";
+import db from "@/lib/db";
 import { notFound } from "next/navigation";
-import Image from "next/image";
+import { RowDataPacket } from "mysql2";
 import BiddingEngine from "@/components/BiddingEngine";
-import { ChevronRight, Home, LayoutList, CheckCircle2 } from "lucide-react";
+import { ChevronRight, Home, LayoutList, CheckCircle2, Info, Calendar, DollarSign } from "lucide-react";
 import Link from "next/link";
 
-// Server Component fetching the initial Auction data
 export default async function AuctionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const item = await prisma.item.findUnique({
-    where: { id: parseInt(id) },
-    include: {
-      owner: { select: { username: true } },
-      highestBidder: { select: { username: true } },
-    },
-  });
 
-  if (!item) {
+  const [rows] = await db.query<RowDataPacket[]>(`
+    SELECT 
+      i.*, 
+      u.username as owner_username,
+      hb.username as bidder_username
+    FROM items i
+    JOIN users u ON i.user_id = u.id
+    LEFT JOIN users hb ON i.highest_bidder_id = hb.id
+    WHERE i.id = ?`,
+    [parseInt(id)]
+  );
+
+  const rawItem = rows[0];
+
+  if (!rawItem) {
     notFound();
   }
 
-  // Calculate elapsed time or time remaining server-side
+  const item = {
+    owner: { username: rawItem.owner_username },
+    highestBidder: rawItem.bidder_username ? { username: rawItem.bidder_username } : null,
+    endTime: rawItem.end_time,
+    currentBid: rawItem.current_bid,
+    startingBid: rawItem.starting_bid,
+    imageUrl: rawItem.image_url,
+    title: rawItem.title,
+    description: rawItem.description,
+    id: rawItem.id,
+    status: rawItem.status as string,
+  };
+
   const isEnded = new Date(item.endTime).getTime() < new Date().getTime() || item.status !== "active";
 
   return (
-    <div className="flex flex-col gap-8 max-w-7xl mx-auto py-6">
-      
+    <div className="flex flex-col gap-6 max-w-6xl mx-auto animate-fade-in-up">
+
       {/* Breadcrumbs */}
-      <nav className="flex items-center gap-2 text-sm text-slate-500 font-medium">
-        <Link href="/" className="hover:text-indigo-600 transition flex items-center gap-1">
-          <Home className="h-4 w-4" /> Home
+      <nav
+        className="flex items-center gap-1.5 text-sm font-medium flex-wrap"
+        style={{ color: "var(--text-muted)" }}
+      >
+        <Link
+          href="/"
+          className="flex items-center gap-1 hover:opacity-80 transition-opacity"
+          style={{ color: "var(--text-muted)" }}
+        >
+          <Home className="h-3.5 w-3.5" /> Home
         </Link>
-        <ChevronRight className="h-4 w-4" />
-        <Link href="/auctions" className="hover:text-indigo-600 transition flex items-center gap-1">
-          <LayoutList className="h-4 w-4" /> Auctions
-        </Link>
-        <ChevronRight className="h-4 w-4" />
-        <span className="text-slate-900 truncate max-w-xs">{item.title}</span>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <span style={{ color: "var(--text-primary)" }} className="truncate max-w-[200px] sm:max-w-xs">
+          {item.title}
+        </span>
       </nav>
 
       {/* Main Grid */}
-      <div className="grid lg:grid-cols-2 gap-12">
-        
-        {/* Left Column: Image & Details */}
-        <div className="flex flex-col gap-8">
-          <div className="relative aspect-[4/3] rounded-3xl overflow-hidden bg-white shadow-sm border border-slate-100 group">
-            <img 
-              src={item.imageUrl || "https://images.unsplash.com/photo-1599305090598-fe179d501c27?auto=format&fit=crop&q=80&w=800"} 
-              alt={item.title} 
-              className="object-cover w-full h-full cursor-zoom-in transition duration-500 group-hover:scale-105"
-            />
-          </div>
+      <div className="grid lg:grid-cols-5 gap-6 lg:gap-8">
 
-          <div className="flex flex-col bg-white rounded-3xl p-8 shadow-sm border border-slate-100 gap-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{item.title}</h1>
-                <p className="mt-2 text-lg text-slate-600">Listed by <span className="font-bold text-indigo-600">@{item.owner.username}</span></p>
+        {/* Left Column: Image & Details (3/5) */}
+        <div className="lg:col-span-3 flex flex-col gap-6">
+          {/* Image */}
+          <div
+            className="relative aspect-[4/3] rounded-xl overflow-hidden group"
+            style={{ backgroundColor: "var(--bg-secondary)" }}
+          >
+            <img
+              src={item.imageUrl || "https://images.unsplash.com/photo-1599305090598-fe179d501c27?auto=format&fit=crop&q=80&w=800"}
+              alt={item.title}
+              className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-[1.03]"
+            />
+            {/* Status badge */}
+            <div className="absolute top-3 left-3">
+              <div className={`badge ${isEnded ? "badge-ended" : "badge-active"}`}>
+                {!isEnded && <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse-soft" />}
+                {isEnded ? "Ended" : "Live"}
               </div>
             </div>
+          </div>
 
-            <div className="w-full h-px bg-slate-100"></div>
-            
-            <div className="prose prose-slate prose-lg max-w-none text-slate-600 leading-relaxed">
-              <h3 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-indigo-500" />
-                Description & Details
-              </h3>
-              <p>{item.description || "No detailed description provided for this item. Please bid carefully."}</p>
+          {/* Details Card */}
+          <div className="card p-6 flex flex-col gap-5">
+            <div>
+              <h1
+                className="text-2xl sm:text-3xl font-bold tracking-tight"
+                style={{ color: "var(--text-primary)" }}
+              >
+                {item.title}
+              </h1>
+              <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
+                Listed by{" "}
+                <span className="font-semibold" style={{ color: "var(--color-primary)" }}>
+                  @{item.owner.username}
+                </span>
+              </p>
             </div>
-            
-            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 mt-4">
-               <h4 className="font-bold text-slate-900 mb-2">Auction Details</h4>
-               <dl className="grid grid-cols-2 gap-4 text-sm">
-                 <div>
-                   <dt className="text-slate-500">Starting Bid</dt>
-                   <dd className="font-bold text-slate-900">${item.startingBid.toString()}</dd>
-                 </div>
-                 <div>
-                   <dt className="text-slate-500">Ends At</dt>
-                   <dd className="font-bold text-slate-900">{new Date(item.endTime).toLocaleString()}</dd>
-                 </div>
-               </dl>
+
+            <div className="divider" />
+
+            {/* Description */}
+            <div>
+              <h3
+                className="text-sm font-semibold uppercase tracking-wider mb-3 flex items-center gap-2"
+                style={{ color: "var(--text-muted)" }}
+              >
+                <Info className="h-3.5 w-3.5" />
+                Description
+              </h3>
+              <p
+                className="text-sm leading-relaxed"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                {item.description || "No description provided for this item."}
+              </p>
+            </div>
+
+            {/* Auction Info Grid */}
+            <div
+              className="grid grid-cols-2 gap-4 p-4 rounded-xl"
+              style={{ backgroundColor: "var(--bg-secondary)", border: "1px solid var(--border)" }}
+            >
+              <div className="flex flex-col gap-1">
+                <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: "var(--text-muted)" }}>
+                  <DollarSign className="h-3 w-3" />
+                  Starting Bid
+                </span>
+                <span className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
+                  ${item.startingBid.toString()}
+                </span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: "var(--text-muted)" }}>
+                  <Calendar className="h-3 w-3" />
+                  Ends At
+                </span>
+                <span className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
+                  {new Date(item.endTime).toLocaleString()}
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Bidding Engine */}
-        <div className="flex flex-col lg:sticky lg:top-24 h-max">
-          {/* We pass the serialized item down to the Client Component */}
+        {/* Right Column: Bidding Engine (2/5) */}
+        <div className="lg:col-span-2 lg:sticky lg:top-20 h-max">
           {isEnded ? (
-            <div className="rounded-3xl bg-slate-50 p-8 border border-slate-200 flex flex-col items-center justify-center text-center gap-4 py-16">
-              <div className="h-16 w-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-2">
-                 <CheckCircle2 className="h-8 w-8" />
+            <div
+              className="card p-8 flex flex-col items-center justify-center text-center gap-4"
+            >
+              <div
+                className="h-14 w-14 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: "rgba(212, 91, 91, 0.1)", color: "var(--color-danger)" }}
+              >
+                <CheckCircle2 className="h-7 w-7" />
               </div>
-              <h2 className="text-2xl font-black text-slate-900">Auction Ended</h2>
-              <p className="text-slate-500 mb-4 text-lg">
-                Winning Bid: <span className="font-bold text-slate-900">${item.currentBid.toString()}</span><br/>
-                Winner: <span className="font-bold text-indigo-600">{item.highestBidder?.username || "No bids placed"}</span>
-              </p>
+              <div>
+                <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+                  Auction Ended
+                </h2>
+                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                  Winning Bid:{" "}
+                  <span className="font-bold" style={{ color: "var(--text-primary)" }}>
+                    ${item.currentBid.toString()}
+                  </span>
+                </p>
+                <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
+                  Winner:{" "}
+                  <span className="font-semibold" style={{ color: "var(--color-primary)" }}>
+                    {item.highestBidder?.username || "No bids placed"}
+                  </span>
+                </p>
+              </div>
             </div>
           ) : (
             <BiddingEngine item={{

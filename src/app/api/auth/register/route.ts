@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import db from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { ResultSetHeader, RowDataPacket } from "mysql2";
 
 const registerSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters long"),
@@ -20,11 +21,12 @@ export async function POST(req: NextRequest) {
     const { username, password } = result.data;
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { username },
-    });
+    const [rows] = await db.query<RowDataPacket[]>(
+      "SELECT id FROM users WHERE username = ?",
+      [username]
+    );
 
-    if (existingUser) {
+    if (rows.length > 0) {
       return NextResponse.json({ error: "Username already taken" }, { status: 400 });
     }
 
@@ -32,14 +34,12 @@ export async function POST(req: NextRequest) {
     const passwordHash = await bcrypt.hash(password, 10);
 
     // Create user
-    const user = await prisma.user.create({
-      data: {
-        username,
-        passwordHash,
-      },
-    });
+    const [insertResult] = await db.query<ResultSetHeader>(
+      "INSERT INTO users (username, password_hash) VALUES (?, ?)",
+      [username, passwordHash]
+    );
 
-    return NextResponse.json({ message: "User registered successfully", userId: user.id }, { status: 201 });
+    return NextResponse.json({ message: "User registered successfully", userId: insertResult.insertId }, { status: 201 });
   } catch (error) {
     console.error("Registration error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

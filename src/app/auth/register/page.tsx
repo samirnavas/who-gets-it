@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Gavel, AlertCircle, ArrowRight } from "lucide-react";
+import { UserPlus, AlertCircle, ArrowRight, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -12,6 +12,7 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,69 +44,109 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-[80vh] items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8 bg-white p-10 rounded-3xl shadow-xl border border-slate-100">
-        <div className="flex flex-col items-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 mb-4">
-            <Gavel className="h-8 w-8" />
+    <div className="flex min-h-[75vh] items-center justify-center py-8 px-4">
+      <div className="w-full max-w-sm animate-fade-in-up">
+        <div className="card p-8 flex flex-col gap-6">
+          {/* Header */}
+          <div className="flex flex-col items-center gap-3">
+            <div
+              className="h-12 w-12 rounded-xl flex items-center justify-center"
+              style={{ backgroundColor: "rgba(76, 175, 130, 0.1)", color: "var(--color-success)" }}
+            >
+              <UserPlus className="h-6 w-6" />
+            </div>
+            <div className="text-center">
+              <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
+                Create an account
+              </h1>
+              <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
+                Join BidSphere and start bidding
+              </p>
+            </div>
           </div>
-          <h2 className="text-center text-3xl font-extrabold text-slate-900">Create an account</h2>
-          <p className="mt-2 text-center text-sm text-slate-600">
-            Or{" "}
-            <Link href="/auth/login" className="font-medium text-indigo-600 hover:text-indigo-500">
-              sign in to existing account
-            </Link>
-          </p>
-        </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="flex items-center gap-2 rounded-xl bg-red-50 p-4 text-sm font-medium text-red-600 border border-red-100">
-              <AlertCircle className="h-5 w-5 shrink-0" />
-              <p>{error}</p>
-            </div>
-          )}
-          
-          {success && (
-            <div className="flex items-center gap-2 rounded-xl bg-green-50 p-4 text-sm font-medium text-green-600 border border-green-100">
-              <p>Registration successful! Redirecting to login...</p>
-            </div>
-          )}
+          {/* Form */}
+          <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+            {error && (
+              <div className="alert alert-error">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <p>{error}</p>
+              </div>
+            )}
 
-          <div className="space-y-4 rounded-md shadow-sm">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Username</label>
+            {success && (
+              <div className="alert alert-success">
+                <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
+                <p>Account created! Redirecting to login...</p>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+                Username
+              </label>
               <input
                 type="text"
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 py-3 px-4 text-slate-900 transition focus:border-indigo-600 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-600/10"
-                placeholder="jsmith"
+                className="input-field"
+                placeholder="Choose a username"
+                autoComplete="username"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 py-3 px-4 text-slate-900 transition focus:border-indigo-600 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-600/10"
-                placeholder="••••••••"
-              />
-            </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={loading || success}
-            className="group relative flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 px-4 text-sm font-bold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-700 active:scale-95 disabled:opacity-70"
-          >
-            {loading ? "Registering..." : "Sign Up"}
-            {!loading && <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />}
-          </button>
-        </form>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="input-field"
+                  style={{ paddingRight: "2.5rem" }}
+                  placeholder="Create a password"
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded transition-colors"
+                  style={{ color: "var(--text-muted)" }}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || success}
+              className="btn btn-primary btn-lg w-full mt-1"
+              style={{ opacity: loading || success ? 0.7 : 1 }}
+            >
+              {loading ? "Creating account..." : "Sign Up"}
+              {!loading && !success && <ArrowRight className="h-4 w-4" />}
+            </button>
+          </form>
+
+          {/* Footer */}
+          <div className="divider" />
+          <p className="text-center text-sm" style={{ color: "var(--text-muted)" }}>
+            Already have an account?{" "}
+            <Link
+              href="/auth/login"
+              className="font-semibold hover:underline"
+              style={{ color: "var(--color-primary)" }}
+            >
+              Sign in
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

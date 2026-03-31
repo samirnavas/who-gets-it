@@ -1,9 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Timer, ArrowUpRight, User } from "lucide-react";
+import { ArrowUpRight, User, Clock } from "lucide-react";
 
 interface AuctionCardProps {
   id: string;
@@ -12,10 +11,12 @@ interface AuctionCardProps {
   endTime: Date;
   imageUrl: string;
   highestBidder: string;
+  startingBid?: number;
 }
 
 export const AuctionCard = ({ id, title, currentBid, endTime, imageUrl, highestBidder }: AuctionCardProps) => {
   const [timeLeft, setTimeLeft] = useState("");
+  const [isEnded, setIsEnded] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -24,64 +25,114 @@ export const AuctionCard = ({ id, title, currentBid, endTime, imageUrl, highestB
 
       if (distance < 0) {
         clearInterval(timer);
-        setTimeLeft("Auction Ended");
+        setTimeLeft("Ended");
+        setIsEnded(true);
         return;
       }
 
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
       const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
-      setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+      if (days > 0) {
+        setTimeLeft(`${days}d ${hours}h`);
+      } else if (hours > 0) {
+        setTimeLeft(`${hours}h ${minutes}m`);
+      } else {
+        setTimeLeft(`${minutes}m ${seconds}s`);
+      }
     }, 1000);
 
     return () => clearInterval(timer);
   }, [endTime]);
 
   return (
-    <div className="group overflow-hidden rounded-2xl bg-white border border-slate-100 shadow-sm transition hover:shadow-xl hover:ring-2 hover:ring-indigo-500/20">
-      <div className="relative aspect-[4/3] overflow-hidden">
+    <Link href={`/auction/${id}`} className="card card-hover group block overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300">
+      {/* Image */}
+      <div className="relative aspect-[4/3] overflow-hidden bg-secondary">
         <img
           src={imageUrl}
           alt={title}
-          className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
+          className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent group-hover:from-black/70" />
-        <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-white">
-          <div className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur-md">
-            <Timer className="h-3 w-3" />
-            <span className="tabular-nums">{timeLeft}</span>
+        {/* Gradient overlay */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)",
+          }}
+        />
+        {/* Timer badge */}
+        <div className="absolute top-3 right-3">
+          <div
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg backdrop-blur-md transition-colors"
+            style={{
+              backgroundColor: isEnded ? "rgba(0,0,0,0.7)" : "rgba(255,255,255,0.15)",
+              color: "#ffffff",
+              border: "1px solid rgba(255,255,255,0.1)",
+            }}
+          >
+            {!isEnded && (
+              <span
+                className="h-2 w-2 rounded-full animate-pulse shadow-sm"
+                style={{ backgroundColor: "var(--color-danger)" }}
+              />
+            )}
+            <Clock className="h-3.5 w-3.5" />
+            <span className="tracking-wide">{timeLeft || "..."}</span>
           </div>
+        </div>
+        {/* Title on image */}
+        <div className="absolute bottom-4 left-4 right-4 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+          <h3 className="text-white font-extrabold text-lg leading-tight line-clamp-2 drop-shadow-lg">
+            {title}
+          </h3>
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 p-5">
-        <h3 className="line-clamp-1 text-lg font-bold text-slate-800 transition group-hover:text-indigo-600">
-          {title}
-        </h3>
-        
-        <div className="flex items-end justify-between border-b border-slate-50 pb-4">
-          <div className="flex flex-col">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Current Bid</span>
-            <span className="text-2xl font-black text-slate-900">${currentBid.toFixed(2)}</span>
+      {/* Card body */}
+      <div className="p-5 flex flex-col gap-5">
+        {/* Bid & Bidder row */}
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <span className="text-xs font-semibold block mb-1 uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+              Current Bid
+            </span>
+            <span className="text-2xl font-black tracking-tight" style={{ color: "var(--text-primary)" }}>
+              ${currentBid.toLocaleString()}
+            </span>
           </div>
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Highest Bidder</span>
-            <div className="flex items-center gap-1 text-indigo-600 font-bold">
-              <User className="h-3 w-3" />
-              <span className="text-sm">{highestBidder}</span>
+          <div className="flex flex-col items-end gap-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+              Highest Bidder
+            </span>
+            <div className="flex items-center gap-1.5">
+              <div
+                className="h-5 w-5 rounded-full flex items-center justify-center shrink-0"
+                style={{ backgroundColor: "rgba(91, 106, 191, 0.1)", color: "var(--color-primary)" }}
+              >
+                <User className="h-3 w-3" />
+              </div>
+              <span className="text-sm font-medium truncate max-w-[90px]" style={{ color: "var(--text-secondary)" }}>
+                {highestBidder}
+              </span>
             </div>
           </div>
         </div>
 
-        <Link
-          href={`/auction/${id}`}
-          className="flex items-center justify-center gap-2 rounded-xl bg-slate-900 py-3 text-sm font-bold text-white transition hover:bg-indigo-600 active:scale-95"
+        {/* CTA */}
+        <div
+          className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all shadow-sm group-hover:shadow-md"
+          style={{
+            backgroundColor: "var(--bg-secondary)",
+            color: "var(--color-primary)",
+          }}
         >
-          Place Your Bid
-          <ArrowUpRight className="h-4 w-4" />
-        </Link>
+          {isEnded ? "View Result" : "Place a Bid"}
+          <ArrowUpRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1" />
+        </div>
       </div>
-    </div>
+    </Link>
   );
 };
