@@ -1,22 +1,8 @@
-import mysql from "mysql2/promise";
+import { createClient } from '@supabase/supabase-js';
 
-const poolConfig = {
-  uri: process.env.DATABASE_URL,
-  waitForConnections: true,
-  connectionLimit: 10,
-  maxIdle: 10,
-  idleTimeout: 60000,
-  queueLimit: 0,
-  enableKeepAlive: true,
-  keepAliveInitialDelay: 0,
-};
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
 
-const globalForDb = globalThis as unknown as {
-  mysqlPool: mysql.Pool | undefined;
-};
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-const pool = globalForDb.mysqlPool ?? mysql.createPool(poolConfig);
-
-if (process.env.NODE_ENV !== "production") globalForDb.mysqlPool = pool;
-
-export default pool;
+export default supabase;

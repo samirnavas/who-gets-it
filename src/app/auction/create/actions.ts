@@ -1,10 +1,9 @@
 "use server";
 
-import db from "@/lib/db";
+import supabase from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
-import { ResultSetHeader } from "mysql2";
 
 export async function createAuction(formData: FormData) {
   const session = await getServerSession(authOptions);
@@ -28,15 +27,27 @@ export async function createAuction(formData: FormData) {
   const endTime = new Date();
   endTime.setHours(endTime.getHours() + durationHours);
 
-  // Format endTime for MySQL (YYYY-MM-DD HH:MM:SS)
-  const mysqlEndTime = endTime.toISOString().slice(0, 19).replace('T', ' ');
+  const pgEndTime = endTime.toISOString();
 
-  const [result] = await db.query<ResultSetHeader>(
-    `INSERT INTO items 
-     (user_id, title, description, image_url, starting_bid, current_bid, end_time, status) 
-     VALUES (?, ?, ?, ?, ?, ?, ?, 'active')`,
-    [userId, title, description, imageUrl, startingBid, startingBid, mysqlEndTime]
-  );
+  const { data, error } = await supabase
+    .from('items')
+    .insert([{
+      user_id: userId,
+      title,
+      description,
+      image_url: imageUrl,
+      starting_bid: startingBid,
+      current_bid: startingBid,
+      end_time: pgEndTime,
+      status: 'active'
+    }])
+    .select('id')
+    .single();
 
-  redirect(`/auction/${result.insertId}`);
+  if (error || !data) {
+    console.error("Error creating auction:", error);
+    throw new Error("Could not create auction");
+  }
+
+  redirect(`/auction/${data.id}`);
 }

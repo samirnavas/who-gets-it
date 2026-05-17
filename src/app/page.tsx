@@ -1,150 +1,120 @@
 import Link from "next/link";
 import { Plus, ArrowRight, Sparkles, TrendingUp, ShieldCheck, Zap } from "lucide-react";
 import { AuctionCard } from "@/components/AuctionCard";
-import db from "@/lib/db";
-import { RowDataPacket } from "mysql2";
+import supabase from "@/lib/db";
 
 export default async function Home() {
-  const [rows] = await db.query<RowDataPacket[]>(`
-    SELECT i.*, u.username as bidder_username 
-    FROM items i 
-    LEFT JOIN users u ON i.highest_bidder_id = u.id 
-    WHERE i.status = 'active' 
-    ORDER BY i.created_at DESC 
-    LIMIT 9
-  `);
+  const { data: rows, error } = await supabase
+    .from("items")
+    .select(`*, bidder:users!items_highest_bidder_id_fkey ( username )`)
+    .eq("status", "active")
+    .order("id", { ascending: false })
+    .limit(8);
 
-  const auctions = rows.map(r => ({
+  if (error) console.error("Error fetching auctions:", error);
+
+  const auctions = (rows || []).map((r: any) => ({
     id: r.id.toString(),
     title: r.title,
     currentBid: parseFloat(r.current_bid),
-    endTime: new Date(r.end_time),
+    endTime: r.end_time,
     imageUrl: r.image_url,
-    highestBidder: r.bidder_username || "No Bids",
-    startingBid: parseFloat(r.starting_bid)
+    highestBidder: r.bidder?.username || "No Bids",
+    startingBid: parseFloat(r.starting_bid),
   }));
 
   return (
-    <div className="flex flex-col gap-16 sm:gap-24 animate-fade-in-up pb-12">
-      {/* Hero Section */}
-      <section className="relative flex flex-col items-center justify-center text-center gap-6 pt-12 sm:pt-24 pb-8 sm:pb-16 px-4">
-        {/* Decorative background glow */}
-        <div 
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl h-[300px] sm:h-[400px] blur-[100px] -z-10 rounded-full opacity-30 dark:opacity-20 pointer-events-none"
-          style={{ background: "radial-gradient(circle, var(--color-primary) 0%, transparent 70%)" }}
+    <div className="flex flex-col gap-16 pb-12 animate-fade-in-up">
+
+      {/* ── HERO ──────────────────────────────────────────────── */}
+      <section className="relative flex flex-col items-center text-center gap-6 pt-14 sm:pt-20 pb-10 px-4">
+        {/* Hero glow */}
+        <div
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(ellipse, rgba(37,99,235,0.12) 0%, transparent 70%)", filter: "blur(60px)", zIndex: 0 }}
         />
 
-        <div 
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-md shadow-sm border mb-4 transition-transform hover:scale-105"
-          style={{ 
-            backgroundColor: "var(--bg-header)", 
-            borderColor: "var(--border)",
-            color: "var(--color-primary)"
-          }}
-        >
-          <Sparkles className="h-4 w-4" />
-          <span className="text-xs font-bold uppercase tracking-widest">
-            Next-Gen Bidding
-          </span>
-        </div>
-        
-        <h1 
-          className="text-4xl sm:text-5xl lg:text-7xl font-extrabold leading-tight tracking-tight max-w-4xl"
-          style={{ color: "var(--text-primary)" }}
-        >
-          Discover & Win <br className="hidden sm:block" />
-          <span className="text-gradient">Extraordinary Items</span>
-        </h1>
-        
-        <p 
-          className="text-lg sm:text-xl max-w-2xl leading-relaxed mt-2"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          Join the most dynamic auction platform. Bid in real-time on curated items, with fair transparent pricing and instant updates.
-        </p>
-        
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8 w-full sm:w-auto">
-          <Link 
-            href="/auctions" 
-            className="btn btn-primary btn-lg w-full sm:w-auto shadow-lg shadow-indigo-500/20 group"
+        <div className="relative z-10 flex flex-col items-center gap-6">
+          {/* Badge */}
+          <div
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest"
+            style={{ background: "rgba(37,99,235,0.08)", border: "1px solid rgba(37,99,235,0.2)", color: "#2563EB" }}
           >
-            Explore Auctions
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </Link>
-          <Link 
-            href="/auction/create" 
-            className="btn btn-secondary btn-lg w-full sm:w-auto group"
-          >
-            <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
-            List an Item
-          </Link>
+            <Sparkles className="h-3.5 w-3.5" />
+            Live Auction Platform
+          </div>
+
+          <h1 className="text-5xl sm:text-7xl font-extrabold tracking-tighter leading-[1.08] text-slate-900 max-w-4xl">
+            Bid on the<br />
+            <span className="text-gradient">extraordinary.</span>
+          </h1>
+
+          <p className="text-base sm:text-xl max-w-2xl leading-relaxed text-slate-500">
+            Real-time bidding with a beautiful, intuitive interface. Discover unique items and place your bids instantly.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center gap-4 mt-2 w-full sm:w-auto">
+            <Link href="/auctions" className="btn-primary px-8 py-4 text-base w-full sm:w-auto">
+              Explore Auctions <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link href="/auction/create" className="btn-ghost px-8 py-4 text-base w-full sm:w-auto">
+              <Plus className="h-4 w-4" /> List an Item
+            </Link>
+          </div>
         </div>
 
-        {/* Features Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-12 mt-16 pt-10 border-t w-full max-w-4xl" style={{ borderColor: "var(--border)" }}>
-          <div className="flex flex-col items-center gap-3">
-            <div className="p-3 rounded-2xl transition-transform hover:-translate-y-1" style={{ backgroundColor: "rgba(98, 114, 217, 0.1)", color: "var(--color-primary)" }}>
-              <Zap className="h-6 w-6" />
-            </div>
-            <h3 className="font-bold" style={{ color: "var(--text-primary)" }}>Real-Time Bids</h3>
-            <p className="text-sm text-center" style={{ color: "var(--text-muted)" }}>Instant updates without refreshing the page.</p>
-          </div>
-          <div className="flex flex-col items-center gap-3">
-            <div className="p-3 rounded-2xl transition-transform hover:-translate-y-1" style={{ backgroundColor: "rgba(76, 175, 130, 0.1)", color: "var(--color-success)" }}>
-              <ShieldCheck className="h-6 w-6" />
-            </div>
-            <h3 className="font-bold" style={{ color: "var(--text-primary)" }}>Secure Platform</h3>
-            <p className="text-sm text-center" style={{ color: "var(--text-muted)" }}>Verified users and transparent bidding history.</p>
-          </div>
-          <div className="flex flex-col items-center gap-3">
-            <div className="p-3 rounded-2xl transition-transform hover:-translate-y-1" style={{ backgroundColor: "rgba(232, 152, 90, 0.1)", color: "var(--color-accent)" }}>
-              <TrendingUp className="h-6 w-6" />
-            </div>
-            <h3 className="font-bold" style={{ color: "var(--text-primary)" }}>Best Value</h3>
-            <p className="text-sm text-center" style={{ color: "var(--text-muted)" }}>Discover rare items at fair market prices.</p>
-          </div>
-        </div>
+        {/* Divider */}
+        <div className="absolute inset-x-0 bottom-0 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(37,99,235,0.15), transparent)" }} />
       </section>
 
-      {/* Active Auctions Section */}
-      <section className="flex flex-col gap-8 max-w-7xl mx-auto w-full">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6" style={{ borderBottom: "1px solid var(--border)" }}>
-          <div className="flex flex-col gap-2">
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>
-              Live Auctions
-            </h2>
-            <p className="text-sm sm:text-base" style={{ color: "var(--text-secondary)" }}>
-              Don't miss out on these actively bidding items.
-            </p>
+      {/* ── FEATURE CARDS ─────────────────────────────────────── */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-4 px-1 stagger-children">
+        {[
+          { icon: Zap, title: "Instant Bids", desc: "Real-time updates the moment someone outbids you.", color: "#2563EB", bg: "rgba(37,99,235,0.07)", border: "rgba(37,99,235,0.15)" },
+          { icon: ShieldCheck, title: "Secure", desc: "Verified participants and fully transparent bidding history.", color: "#6366F1", bg: "rgba(99,102,241,0.07)", border: "rgba(99,102,241,0.15)" },
+          { icon: TrendingUp, title: "Fair Value", desc: "Market-driven pricing powered by real competitive bids.", color: "#8B5CF6", bg: "rgba(139,92,246,0.07)", border: "rgba(139,92,246,0.15)" },
+        ].map(({ icon: Icon, title, desc, color, bg, border }) => (
+          <div key={title} className="card p-6 flex flex-col gap-4">
+            <div
+              className="h-11 w-11 rounded-xl flex items-center justify-center"
+              style={{ background: bg, border: `1px solid ${border}` }}
+            >
+              <Icon className="h-5 w-5" style={{ color }} />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-800 text-base mb-1">{title}</h3>
+              <p className="text-sm leading-relaxed text-slate-500">{desc}</p>
+            </div>
           </div>
-          <Link
-            href="/auctions"
-            className="group flex items-center gap-2 text-sm font-semibold transition-all px-4 py-2 rounded-lg"
-            style={{ backgroundColor: "var(--bg-secondary)", color: "var(--text-primary)" }}
-          >
-            View All
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" style={{ color: "var(--color-primary)" }} />
+        ))}
+      </section>
+
+      {/* ── LIVE AUCTIONS ─────────────────────────────────────── */}
+      <section className="flex flex-col gap-6">
+        <div className="flex items-end justify-between pb-4" style={{ borderBottom: "1px solid rgba(37,99,235,0.1)" }}>
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Live Auctions</h2>
+            <p className="text-sm mt-1 text-slate-500">Discover currently active listings.</p>
+          </div>
+          <Link href="/auctions" className="btn-ghost text-sm px-4 py-2">
+            View All <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
 
         {auctions.length > 0 ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 stagger-children">
-            {auctions.map((auction) => (
-              <AuctionCard key={auction.id} {...auction} />
-            ))}
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 stagger-children">
+            {auctions.map((a) => <AuctionCard key={a.id} {...a} />)}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-24 px-4 text-center rounded-3xl border-2 border-dashed transition-colors hover:border-solid" style={{ backgroundColor: "var(--bg-secondary)", borderColor: "var(--border)" }}>
-            <div className="p-4 rounded-2xl mb-5 shadow-sm" style={{ backgroundColor: "var(--bg-card)" }}>
-              <Sparkles className="h-8 w-8" style={{ color: "var(--text-muted)" }} />
+          <div className="card flex flex-col items-center justify-center py-24 px-4 text-center">
+            <div className="h-16 w-16 rounded-2xl flex items-center justify-center mb-5"
+              style={{ background: "linear-gradient(135deg, #2563EB, #4F46E5)", boxShadow: "0 8px 24px rgba(37,99,235,0.3)" }}>
+              <Sparkles className="h-7 w-7 text-white" />
             </div>
-            <h3 className="text-2xl font-bold mb-2 tracking-tight" style={{ color: "var(--text-primary)" }}>No Active Auctions</h3>
-            <p className="max-w-md text-sm sm:text-base mb-8 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-              We're waiting for the next big thing. Be the first to start a new auction and attract bidders right away!
-            </p>
-            <Link href="/auction/create" className="btn btn-primary btn-lg shadow-lg shadow-primary/20">
-              <Plus className="h-5 w-5" />
-              List an Item
+            <h3 className="text-xl font-bold text-slate-800 mb-2">It&apos;s quiet here</h3>
+            <p className="mb-8 max-w-md text-slate-500">There are no active auctions. Be the first to list an item!</p>
+            <Link href="/auction/create" className="btn-primary px-6 py-3">
+              <Plus className="h-4 w-4" /> List an Item
             </Link>
           </div>
         )}

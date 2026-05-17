@@ -5,10 +5,7 @@ import { LogOut } from "lucide-react";
 
 export default function LogoutButton() {
   return (
-    <button
-      onClick={() => signOut({ callbackUrl: "/" })}
-      className="btn btn-danger text-sm"
-    >
+    <button onClick={() => signOut({ callbackUrl: "/" })} className="btn-danger">
       <LogOut className="h-4 w-4" />
       Sign Out
     </button>

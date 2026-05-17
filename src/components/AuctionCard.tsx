@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowUpRight, User, Clock } from "lucide-react";
+import { ArrowRight, User, Clock } from "lucide-react";
+import { parseDateTime } from "@/lib/date";
 
 interface AuctionCardProps {
   id: string;
   title: string;
   currentBid: number;
-  endTime: Date;
+  endTime: string | Date;
   imageUrl: string;
   highestBidder: string;
   startingBid?: number;
@@ -19,118 +20,66 @@ export const AuctionCard = ({ id, title, currentBid, endTime, imageUrl, highestB
   const [isEnded, setIsEnded] = useState(false);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date().getTime();
-      const distance = endTime.getTime() - now;
-
-      if (distance < 0) {
-        clearInterval(timer);
-        setTimeLeft("Ended");
-        setIsEnded(true);
-        return;
-      }
-
-      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-      if (days > 0) {
-        setTimeLeft(`${days}d ${hours}h`);
-      } else if (hours > 0) {
-        setTimeLeft(`${hours}h ${minutes}m`);
-      } else {
-        setTimeLeft(`${minutes}m ${seconds}s`);
-      }
-    }, 1000);
-
+    const parsedEndTime = parseDateTime(endTime);
+    const tick = () => {
+      const dist = parsedEndTime.getTime() - Date.now();
+      if (dist < 0) { setTimeLeft("Ended"); setIsEnded(true); return; }
+      const d = Math.floor(dist / 86400000);
+      const h = Math.floor((dist % 86400000) / 3600000);
+      const m = Math.floor((dist % 3600000) / 60000);
+      const s = Math.floor((dist % 60000) / 1000);
+      setTimeLeft(d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${m}m` : `${m}m ${s}s`);
+    };
+    tick();
+    const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
   }, [endTime]);
 
   return (
-    <Link href={`/auction/${id}`} className="card card-hover group block overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300">
+    <Link href={`/auction/${id}`} className="group block card overflow-hidden" style={{ padding: 0 }}>
       {/* Image */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-secondary">
+      <div className="relative aspect-[4/3] overflow-hidden bg-blue-50">
         <img
           src={imageUrl}
           alt={title}
-          className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
-        {/* Gradient overlay */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)",
-          }}
-        />
-        {/* Timer badge */}
+        {/* Gradient overlay for text readability */}
+        <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(15,23,42,0.65) 0%, rgba(15,23,42,0.15) 45%, transparent 100%)" }} />
+
+        {/* Timer chip */}
         <div className="absolute top-3 right-3">
           <div
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg backdrop-blur-md transition-colors"
-            style={{
-              backgroundColor: isEnded ? "rgba(0,0,0,0.7)" : "rgba(255,255,255,0.15)",
-              color: "#ffffff",
-              border: "1px solid rgba(255,255,255,0.1)",
-            }}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold"
+            style={{ background: "rgba(255,255,255,0.88)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.5)", color: isEnded ? "#64748B" : "#2563EB" }}
           >
-            {!isEnded && (
-              <span
-                className="h-2 w-2 rounded-full animate-pulse shadow-sm"
-                style={{ backgroundColor: "var(--color-danger)" }}
-              />
-            )}
-            <Clock className="h-3.5 w-3.5" />
-            <span className="tracking-wide">{timeLeft || "..."}</span>
+            {!isEnded && <span className="h-1.5 w-1.5 rounded-full animate-pulse bg-blue-500" />}
+            <Clock className="h-3 w-3" />
+            {timeLeft || "…"}
           </div>
         </div>
-        {/* Title on image */}
-        <div className="absolute bottom-4 left-4 right-4 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-          <h3 className="text-white font-extrabold text-lg leading-tight line-clamp-2 drop-shadow-lg">
-            {title}
-          </h3>
+
+        {/* Title over image */}
+        <div className="absolute bottom-3 left-3 right-3">
+          <h3 className="text-white font-bold text-sm leading-snug line-clamp-2 drop-shadow">{title}</h3>
         </div>
       </div>
 
-      {/* Card body */}
-      <div className="p-5 flex flex-col gap-5">
-        {/* Bid & Bidder row */}
-        <div className="flex items-end justify-between gap-3">
-          <div>
-            <span className="text-xs font-semibold block mb-1 uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
-              Current Bid
-            </span>
-            <span className="text-2xl font-black tracking-tight" style={{ color: "var(--text-primary)" }}>
-              ${currentBid.toLocaleString()}
-            </span>
-          </div>
-          <div className="flex flex-col items-end gap-1">
-            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
-              Highest Bidder
-            </span>
-            <div className="flex items-center gap-1.5">
-              <div
-                className="h-5 w-5 rounded-full flex items-center justify-center shrink-0"
-                style={{ backgroundColor: "rgba(91, 106, 191, 0.1)", color: "var(--color-primary)" }}
-              >
-                <User className="h-3 w-3" />
-              </div>
-              <span className="text-sm font-medium truncate max-w-[90px]" style={{ color: "var(--text-secondary)" }}>
-                {highestBidder}
-              </span>
-            </div>
+      {/* Body */}
+      <div className="p-4 flex items-center justify-between gap-3 bg-white">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5 text-blue-500">Current Bid</p>
+          <p className="text-lg font-extrabold text-slate-900">${currentBid.toLocaleString()}</p>
+          <div className="flex items-center gap-1.5 mt-1">
+            <User className="h-3 w-3 text-slate-400" />
+            <span className="text-xs truncate max-w-[100px] text-slate-500">{highestBidder}</span>
           </div>
         </div>
-
-        {/* CTA */}
         <div
-          className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all shadow-sm group-hover:shadow-md"
-          style={{
-            backgroundColor: "var(--bg-secondary)",
-            color: "var(--color-primary)",
-          }}
+          className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0 transition-all group-hover:scale-110"
+          style={{ background: "linear-gradient(135deg, #2563EB, #4F46E5)", boxShadow: "0 4px 14px rgba(37,99,235,0.3)", color: "white" }}
         >
-          {isEnded ? "View Result" : "Place a Bid"}
-          <ArrowUpRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1" />
+          <ArrowRight className="h-4 w-4" />
         </div>
       </div>
     </Link>
